@@ -11,11 +11,14 @@
 #include <ctype.h>
 #define ARR_MAX 100
 
+// DATA STRUCTURE
+
 // Functions
 long getCacheSize(char *arg);
 long getBlockSize(char *arg);
 unsigned int getAssociativity(char *arg);
 int getReadWriteAction(char action);
+int calculateNumberCacheAddresses(int cache_size, int cache_block );
 
 // Utility functions
 bool IsPowerOfTwo(unsigned long x);
@@ -115,6 +118,8 @@ unsigned int checkAssociativityInput(char *arg){
         }
     }
 }
+
+// Get the direct, assoc, and assoc:n
 unsigned int getAssociativity(char *arg){
     assert(arg != NULL);
     char str[ARR_MAX];
@@ -142,6 +147,7 @@ unsigned int getAssociativity(char *arg){
         return num;
     }
 }
+
 long getNumberFromAssoc(char *arg){
     char *assoc_n = "assoc:";
     unsigned int len = strlen(assoc_n);
@@ -159,6 +165,7 @@ long getNumberFromAssoc(char *arg){
     num = strtol(tmp, &ptr,10);
     return num;
 }
+
 int getCachePolicy(char *arg){
     /* Function eviction policy
      * 0 is an error
@@ -186,6 +193,9 @@ int getCachePolicy(char *arg){
     } else {
         return 0;
     }
+}
+int calculateNumberCacheAddresses(int cache_size, int cache_block ){
+    return cache_size/cache_block;
 }
 int getReadWriteAction(char action){
     /* DOC
