@@ -12,7 +12,27 @@
 #define ARR_MAX 100
 
 // DATA STRUCTURE
+struct Node {
+    long address;
+    struct Node *next;
+    struct Node *prev;
+};
 
+void push(struct Node** head, int new_data)
+{
+    /* 1. allocate node */
+    struct Node* new_node = (struct Node*)malloc(sizeof(struct Node));
+    new_node->address = new_data;
+
+    new_node->next = (*head);
+    new_node->prev = NULL;
+
+    if ((*head) != NULL){
+        (*head)->prev = new_node;
+    }
+
+    (*head) = new_node;
+}
 // Functions
 long getCacheSize(char *arg);
 long getBlockSize(char *arg);
