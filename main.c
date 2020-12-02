@@ -10,40 +10,69 @@
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
+#include "first.h"
 #define ARR_MAX 100
 
-// DATA STRUCTURE
-struct Cache{
-    size_t capacity;
-    size_t memory_read;
-    size_t memory_write;
-    size_t cache_hit;
-    size_t cache_miss;
-};
-struct Node {
-    long address;
-    bool free;
-    struct Node *next;
-};
+int main( int argc, char *argv[argc+1]) {
 
-// Data-Structure for Nodes Functions
-void insertNodeInTheBeginning(struct Node** head, int new_data);
-void deleteLinkedList(struct Node** head);
+    long cache_size;
+    long block_size;
+    char trace_file[ARR_MAX];
+
+    //File name from arguments
+    if (argc != 6 ){
+        printf("DEV Error 1: Give 5 arg as int: cache_size, str: associativity, str: cache_policy, int: block_size, str: trace_file\n");
+        printf("error");
+        return EXIT_SUCCESS;
+    }
+    // Check for power of 2 for cache_size and block_size
+    cache_size = getCacheSize(argv[1]);
+    block_size = getBlockSize(argv[4]);
+    if (cache_size == 0 || block_size == 0){
+        printf("DEV Error 2: cache_size and block_size must be power of 2 and > 0\n");
+        printf("error");
+        return EXIT_SUCCESS;
+    }
+    long associativity = getAssociativity(argv[2]);
+    int cache_policy = getCachePolicy(argv[3]);
+
+    printf("cache_size: %lu\n",cache_size);
+    printf("block_size: %lu\n",block_size);
+    printf("associativity: %lu\n",associativity);
+    printf("cache_policy: %d\n",cache_policy);
+
+    // Declare the read file and read it
+    FILE *fp;
+    fp = fopen( argv[5], "r");
+    // Check if the file is empty
+    if ( fp == NULL ){
+        printf("DEV Error 3:Unable to read the file\n");
+        printf("error\n");
+        return EXIT_SUCCESS;
+    }
+
+    // File data
+    char action = '\0';
+    int memory_address = 0x012;
+    //printf("sizeof(associativity[]:%lu\n",sizeof(associativity));
+    while ( fscanf( fp, "%c %x",&action, &memory_address) != EOF ){
+        printf("action: %c memory_address: %x\n",action, memory_address );
+    }
+    // Close the file and destroy memory allocations
+    fclose(fp);
+
+    struct Node *linked_list=NULL;
+    insertNodeInTheBeginning(&linked_list,10);
+    insertNodeInTheBeginning(&linked_list,15);
+    insertNodeInTheBeginning(&linked_list,16);
+    printList(linked_list);
+    deleteLinkedList(&linked_list);
+    printList(linked_list);
 
 
-// Functions
-long getCacheSize(char *arg);
-long getBlockSize(char *arg);
-unsigned int getAssociativity(char *arg);
-int getReadWriteAction(char action);
-int calculateNumberCacheAddresses(int cache_size, int cache_block );
 
-// Utility functions
-bool IsPowerOfTwo(unsigned long x);
-bool isEven(long int n);
-unsigned int checkAssociativityInput(char *arg);
-long getNumberFromAssoc(char *arg);
-
+    return EXIT_SUCCESS;
+}
 
 bool IsPowerOfTwo(unsigned long x){
     return (x != 0) && ((x & (x - 1)) == 0);
@@ -59,47 +88,6 @@ bool isEven(long int n){
     }
 }
 
-// Data structure functions
-void insertNodeInTheBeginning(struct Node** head, int new_data){
-
-    // Allocate new node and insert O(1)
-    struct Node* new_node = (struct Node*)malloc(sizeof(struct Node));
-    new_node->address = new_data;
-    new_node->free = false;
-    new_node->next = (*head);
-    (*head) = new_node;
-
-}
-void deleteLinkedList(struct Node** head){
-    if ( head == NULL){
-        return;
-    }
-    struct Node *ptr = (*head);
-    struct Node *tmp;
-    while ( ptr != NULL){
-        tmp = ptr->next;
-        free(ptr);
-        ptr = tmp;
-    }
-    *head = NULL;
-}
-void printList(struct Node *head){
-    printf("*****LINKED-LIST*****\n");
-    if (head == NULL){
-        printf("Empty List\n");
-        printf("***LINKED-LIST-END***\n");
-        return;
-    }
-    struct Node *ptr = head;
-
-    while (ptr != NULL){
-        printf("f:%d addr:%lu\t",ptr->free, ptr->address);
-        ptr = ptr->next;
-    }
-    printf("(NULL)");
-    printf("\n***LINKED-LIST-END***\n");
-
-}
 // Functions
 long getCacheSize(char *arg){
 
@@ -278,64 +266,4 @@ int getReadWriteAction(char action){
     } else{
         return 0;
     }
-}
-int main( int argc, char *argv[argc+1]) {
-
-    long cache_size;
-    long block_size;
-    char trace_file[ARR_MAX];
-
-    //File name from arguments
-    if (argc != 6 ){
-        printf("DEV Error 1: Give 5 arg as int: cache_size, str: associativity, str: cache_policy, int: block_size, str: trace_file\n");
-        printf("error");
-        return EXIT_SUCCESS;
-    }
-    // Check for power of 2 for cache_size and block_size
-    cache_size = getCacheSize(argv[1]);
-    block_size = getBlockSize(argv[4]);
-    if (cache_size == 0 || block_size == 0){
-        printf("DEV Error 2: cache_size and block_size must be power of 2 and > 0\n");
-        printf("error");
-        return EXIT_SUCCESS;
-    }
-    long associativity = getAssociativity(argv[2]);
-    int cache_policy = getCachePolicy(argv[3]);
-
-    printf("cache_size: %lu\n",cache_size);
-    printf("block_size: %lu\n",block_size);
-    printf("associativity: %lu\n",associativity);
-    printf("cache_policy: %d\n",cache_policy);
-
-    // Declare the read file and read it
-    FILE *fp;
-    fp = fopen( argv[5], "r");
-    // Check if the file is empty
-    if ( fp == NULL ){
-        printf("DEV Error 3:Unable to read the file\n");
-        printf("error\n");
-        return EXIT_SUCCESS;
-    }
-
-    // File data
-    char action = '\0';
-    int memory_address = 0x012;
-    //printf("sizeof(associativity[]:%lu\n",sizeof(associativity));
-    while ( fscanf( fp, "%c %x",&action, &memory_address) != EOF ){
-        printf("action: %c memory_address: %x\n",action, memory_address );
-    }
-    // Close the file and destroy memory allocations
-    fclose(fp);
-
-    struct Node *linked_list=NULL;
-    insertNodeInTheBeginning(&linked_list,10);
-    insertNodeInTheBeginning(&linked_list,15);
-    insertNodeInTheBeginning(&linked_list,16);
-    printList(linked_list);
-    deleteLinkedList(&linked_list);
-    printList(linked_list);
-
-
-
-    return EXIT_SUCCESS;
 }
