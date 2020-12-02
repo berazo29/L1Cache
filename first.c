@@ -62,7 +62,7 @@ int main( int argc, char *argv[argc+1]) {
     fclose(fp);
 
     struct Node *linked_list=NULL;
-    linked_list = createCacheLinkedList(linked_list,10);
+    linked_list = createCacheLinkedList(linked_list,calculateNumberCacheAddresses(cache_size,block_size));
     printList(linked_list);
     deleteLinkedList(&linked_list);
     printList(linked_list);
@@ -261,7 +261,7 @@ int getCachePolicy(char *arg){
         return 0;
     }
 }
-int calculateNumberCacheAddresses(int cache_size, int cache_block ){
+size_t calculateNumberCacheAddresses(size_t cache_size, size_t cache_block ){
     return cache_size/cache_block;
 }
 int getReadWriteAction(char action){

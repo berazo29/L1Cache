@@ -20,7 +20,7 @@ struct Node {
 };
 
 // Data-Structure Nodes Functions
-void insertNodeInTheBeginning(struct Node** head, int new_data, bool free);
+void insertNodeInTheBeginning(struct Node** head, size_t new_data, bool free);
 void deleteLinkedList(struct Node** head);
 
 
@@ -30,7 +30,7 @@ long getBlockSize(char *arg);
 int getCachePolicy(char *arg);
 unsigned int getAssociativity(char *arg);
 int getReadWriteAction(char action);
-int calculateNumberCacheAddresses(int cache_size, int cache_block );
+size_t calculateNumberCacheAddresses(size_t cache_size, size_t cache_block );
 struct Node *createCacheLinkedList(struct Node *head, unsigned int capacity);
 
 // Utility functions
@@ -40,7 +40,7 @@ unsigned int checkAssociativityInput(char *arg);
 long getNumberFromAssoc(char *arg);
 
 // Data structure functions
-void insertNodeInTheBeginning(struct Node** head, int new_data, bool free){
+void insertNodeInTheBeginning(struct Node** head, size_t new_data, bool free){
 
     // Allocate new node and insert O(1)
     struct Node* new_node = (struct Node*)malloc(sizeof(struct Node));
