@@ -6,7 +6,7 @@
 #define L1CACHE_FIRST_H
 
 // DATA STRUCTURE
-struct Cache{
+struct CacheStats{
     size_t capacity;
     size_t memory_read;
     size_t memory_write;
@@ -31,7 +31,8 @@ int getCachePolicy(char *arg);
 unsigned int getAssociativity(char *arg);
 int getReadWriteAction(char action);
 size_t calculateNumberCacheAddresses(size_t cache_size, size_t cache_block );
-struct Node *createCacheLinkedList(struct Node *head, unsigned int capacity);
+struct Node *createCacheLinkedList(struct Node *head, unsigned int capacity,struct CacheStats **cacheStats);
+
 
 // Utility functions
 bool IsPowerOfTwo(unsigned long x);
@@ -79,6 +80,17 @@ void printList(struct Node *head){
     printf("(NULL)");
     printf("\n***LINKED-LIST-END***\n");
 
+}
+
+void printCacheStats(struct CacheStats *cacheStats){
+    if (cacheStats == NULL){
+        printf("cacheStats is empty\n");
+    }
+    printf("capacity: %lu\n",cacheStats->capacity);
+    printf("memory_read: %lu\n",cacheStats->memory_read);
+    printf("memory_write: %lu\n",cacheStats->memory_write);
+    printf("cache_hit: %lu\n",cacheStats->cache_hit);
+    printf("cache_miss: %lu\n",cacheStats->cache_miss);
 }
 
 #endif //L1CACHE_FIRST_H

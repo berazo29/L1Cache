@@ -62,15 +62,10 @@ int main( int argc, char *argv[argc+1]) {
     fclose(fp);
 
     struct Node *linked_list=NULL;
-    linked_list = createCacheLinkedList(linked_list,calculateNumberCacheAddresses(cache_size,block_size));
-    printList(linked_list);
-    deleteLinkedList(&linked_list);
-    printList(linked_list);
-    linked_list = createCacheLinkedList(linked_list,5);
-    printList(linked_list);
-    deleteLinkedList(&linked_list);
-    printList(linked_list);
-    linked_list = createCacheLinkedList(linked_list,15);
+    struct CacheStats *cacheStats=NULL;
+    linked_list = createCacheLinkedList(linked_list,calculateNumberCacheAddresses(cache_size,block_size),&cacheStats);
+    printCacheStats(cacheStats);
+    free(cacheStats);
     printList(linked_list);
     deleteLinkedList(&linked_list);
     printList(linked_list);
@@ -78,14 +73,23 @@ int main( int argc, char *argv[argc+1]) {
 
     return EXIT_SUCCESS;
 }
+
 // Create an empty cache with given capacity or lines
-struct Node *createCacheLinkedList(struct Node *head, unsigned int capacity){
+struct Node *createCacheLinkedList(struct Node *head, unsigned int capacity,struct CacheStats **cacheStats){
     struct Node *ptr = head;
     if (ptr == NULL){
         // Initialize empty cache
         for (int i = 0; i < capacity; ++i) {
             insertNodeInTheBeginning(&ptr,0,true);
         }
+        struct CacheStats *new_cacheStats = malloc(sizeof(struct CacheStats));
+        new_cacheStats->cache_hit=0;
+        new_cacheStats->cache_miss=0;
+        new_cacheStats->memory_write=0;
+        new_cacheStats->memory_read=0;
+        new_cacheStats->capacity=capacity;
+        (*cacheStats) = new_cacheStats;
+
         return ptr;
     } else{
         printf("DEV 4:Linked List is not empty\n");
