@@ -62,18 +62,36 @@ int main( int argc, char *argv[argc+1]) {
     fclose(fp);
 
     struct Node *linked_list=NULL;
-    insertNodeInTheBeginning(&linked_list,10);
-    insertNodeInTheBeginning(&linked_list,15);
-    insertNodeInTheBeginning(&linked_list,16);
+    linked_list = createCacheLinkedList(linked_list,10);
+    printList(linked_list);
+    deleteLinkedList(&linked_list);
+    printList(linked_list);
+    linked_list = createCacheLinkedList(linked_list,5);
+    printList(linked_list);
+    deleteLinkedList(&linked_list);
+    printList(linked_list);
+    linked_list = createCacheLinkedList(linked_list,15);
     printList(linked_list);
     deleteLinkedList(&linked_list);
     printList(linked_list);
 
 
-
     return EXIT_SUCCESS;
 }
-
+// Create an empty cache with given capacity or lines
+struct Node *createCacheLinkedList(struct Node *head, unsigned int capacity){
+    struct Node *ptr = head;
+    if (ptr == NULL){
+        // Initialize empty cache
+        for (int i = 0; i < capacity; ++i) {
+            insertNodeInTheBeginning(&ptr,0,true);
+        }
+        return ptr;
+    } else{
+        printf("DEV 4:Linked List is not empty\n");
+        return NULL;
+    }
+}
 bool IsPowerOfTwo(unsigned long x){
     return (x != 0) && ((x & (x - 1)) == 0);
 }
@@ -179,7 +197,7 @@ unsigned int getAssociativity(char *arg){
     assert( assoc_action >= 0 && assoc_action <= 3);
 
     if ( assoc_action == 0 ){
-        printf("DEV ERROR 100: Action 0 is invalid and must print error in production\n");
+        printf("DEV ERROR 5: Action 0 is invalid and must print error in production\n");
         return 0;
     }
     // This is fully direct cache
