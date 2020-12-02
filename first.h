@@ -86,11 +86,13 @@ void printCacheStats(struct CacheStats *cacheStats){
     if (cacheStats == NULL){
         printf("cacheStats is empty\n");
     }
+    printf("CACHE-STATS\n");
     printf("capacity: %lu\n",cacheStats->capacity);
     printf("memory_read: %lu\n",cacheStats->memory_read);
     printf("memory_write: %lu\n",cacheStats->memory_write);
     printf("cache_hit: %lu\n",cacheStats->cache_hit);
     printf("cache_miss: %lu\n",cacheStats->cache_miss);
+    printf("CACHE-STATS-END\n");
 }
 
 #endif //L1CACHE_FIRST_H
