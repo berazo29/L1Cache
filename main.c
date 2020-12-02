@@ -1,5 +1,6 @@
 /*
  * Cache L1 simulator
+ * Author: Bryan Erazo
  * Interface: ./first <cache size><associativity><cache policy><block size><trace file>
  */
 
@@ -12,27 +13,24 @@
 #define ARR_MAX 100
 
 // DATA STRUCTURE
+struct Cache{
+    size_t capacity;
+    size_t memory_read;
+    size_t memory_write;
+    size_t cache_hit;
+    size_t cache_miss;
+};
 struct Node {
     long address;
+    bool free;
     struct Node *next;
-    struct Node *prev;
 };
 
-void push(struct Node** head, int new_data)
-{
-    /* 1. allocate node */
-    struct Node* new_node = (struct Node*)malloc(sizeof(struct Node));
-    new_node->address = new_data;
+// Data-Structure for Nodes Functions
+void insertNodeInTheBeginning(struct Node** head, int new_data);
+void deleteLinkedList(struct Node** head);
 
-    new_node->next = (*head);
-    new_node->prev = NULL;
 
-    if ((*head) != NULL){
-        (*head)->prev = new_node;
-    }
-
-    (*head) = new_node;
-}
 // Functions
 long getCacheSize(char *arg);
 long getBlockSize(char *arg);
@@ -45,6 +43,7 @@ bool IsPowerOfTwo(unsigned long x);
 bool isEven(long int n);
 unsigned int checkAssociativityInput(char *arg);
 long getNumberFromAssoc(char *arg);
+
 
 bool IsPowerOfTwo(unsigned long x){
     return (x != 0) && ((x & (x - 1)) == 0);
@@ -60,6 +59,48 @@ bool isEven(long int n){
     }
 }
 
+// Data structure functions
+void insertNodeInTheBeginning(struct Node** head, int new_data){
+
+    // Allocate new node and insert O(1)
+    struct Node* new_node = (struct Node*)malloc(sizeof(struct Node));
+    new_node->address = new_data;
+    new_node->free = false;
+    new_node->next = (*head);
+    (*head) = new_node;
+
+}
+void deleteLinkedList(struct Node** head){
+    if ( head == NULL){
+        return;
+    }
+    struct Node *ptr = (*head);
+    struct Node *tmp;
+    while ( ptr != NULL){
+        tmp = ptr->next;
+        free(ptr);
+        ptr = tmp;
+    }
+    *head = NULL;
+}
+void printList(struct Node *head){
+    printf("*****LINKED-LIST*****\n");
+    if (head == NULL){
+        printf("Empty List\n");
+        printf("***LINKED-LIST-END***\n");
+        return;
+    }
+    struct Node *ptr = head;
+
+    while (ptr != NULL){
+        printf("f:%d addr:%lu\t",ptr->free, ptr->address);
+        ptr = ptr->next;
+    }
+    printf("(NULL)");
+    printf("\n***LINKED-LIST-END***\n");
+
+}
+// Functions
 long getCacheSize(char *arg){
 
     assert(arg != NULL);
@@ -286,6 +327,13 @@ int main( int argc, char *argv[argc+1]) {
     // Close the file and destroy memory allocations
     fclose(fp);
 
+    struct Node *linked_list=NULL;
+    insertNodeInTheBeginning(&linked_list,10);
+    insertNodeInTheBeginning(&linked_list,15);
+    insertNodeInTheBeginning(&linked_list,16);
+    printList(linked_list);
+    deleteLinkedList(&linked_list);
+    printList(linked_list);
 
 
 
