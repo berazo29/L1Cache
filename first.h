@@ -20,7 +20,7 @@ struct Node {
 };
 
 // Data-Structure Nodes Functions
-void insertNodeInTheBeginning(struct Node** head, int new_data);
+void insertNodeInTheBeginning(struct Node** head, int new_data, bool free);
 void deleteLinkedList(struct Node** head);
 
 
@@ -31,6 +31,7 @@ int getCachePolicy(char *arg);
 unsigned int getAssociativity(char *arg);
 int getReadWriteAction(char action);
 int calculateNumberCacheAddresses(int cache_size, int cache_block );
+struct Node *createCacheLinkedList(struct Node *head, unsigned int capacity);
 
 // Utility functions
 bool IsPowerOfTwo(unsigned long x);
@@ -39,12 +40,12 @@ unsigned int checkAssociativityInput(char *arg);
 long getNumberFromAssoc(char *arg);
 
 // Data structure functions
-void insertNodeInTheBeginning(struct Node** head, int new_data){
+void insertNodeInTheBeginning(struct Node** head, int new_data, bool free){
 
     // Allocate new node and insert O(1)
     struct Node* new_node = (struct Node*)malloc(sizeof(struct Node));
     new_node->address = new_data;
-    new_node->free = false;
+    new_node->free = free;
     new_node->next = (*head);
     (*head) = new_node;
 
