@@ -7,7 +7,6 @@
 
 // DATA STRUCTURE
 struct CacheStats{
-    size_t capacity;
     size_t memory_read;
     size_t memory_write;
     size_t cache_hit;
@@ -15,12 +14,17 @@ struct CacheStats{
 };
 struct Node {
     long address;
-    bool free;
     struct Node *next;
 };
 
+struct Cache {
+    size_t len;
+    size_t number_nodes_in_linked_list;
+    size_t max_nodes_allow;
+    struct Node *linked_list;
+};
 // Data-Structure Nodes Functions
-void insertNodeInTheBeginning(struct Node** head, size_t new_data, bool free);
+void insertNodeInTheBeginning(struct Node** head, size_t new_data);
 void deleteLinkedList(struct Node** head);
 
 
@@ -31,9 +35,7 @@ int getCachePolicy(char *arg);
 unsigned int getAssociativity(char *arg);
 int getReadWriteAction(char action);
 size_t calculateNumberCacheAddresses(size_t cache_size, size_t cache_block );
-struct Node *createCacheLinkedList(struct Node *head, unsigned int capacity,struct CacheStats **cacheStats);
-
-
+struct Cache *createCache(struct Cache *cache, size_t cache_size, size_t block_size,unsigned int assocAction, size_t assoc, struct CacheStats **cacheStats);
 // Utility functions
 bool IsPowerOfTwo(unsigned long x);
 bool isEven(long int n);
@@ -41,12 +43,11 @@ unsigned int checkAssociativityInput(char *arg);
 long getNumberFromAssoc(char *arg);
 
 // Data structure functions
-void insertNodeInTheBeginning(struct Node** head, size_t new_data, bool free){
+void insertNodeInTheBeginning(struct Node** head, size_t new_data){
 
     // Allocate new node and insert O(1)
     struct Node* new_node = (struct Node*)malloc(sizeof(struct Node));
     new_node->address = new_data;
-    new_node->free = free;
     new_node->next = (*head);
     (*head) = new_node;
 
@@ -65,29 +66,44 @@ void deleteLinkedList(struct Node** head){
     *head = NULL;
 }
 void printList(struct Node *head){
-    printf("*****LINKED-LIST*****\n");
+
     if (head == NULL){
-        printf("Empty List\n");
-        printf("***LINKED-LIST-END***\n");
+        printf("(null)\n");
         return;
     }
     struct Node *ptr = head;
 
     while (ptr != NULL){
-        printf("f:%d addr:%lu\t",ptr->free, ptr->address);
+        printf("addr:%lu\t", ptr->address);
         ptr = ptr->next;
     }
-    printf("(NULL)");
-    printf("\n***LINKED-LIST-END***\n");
+    printf("(NULL)\n");
 
 }
 
+void printCache(struct Cache *cache){
+    struct Cache *ptr = cache;
+    printf("\n\n***CACHE***\n");
+    if (ptr == NULL){
+        printf("cache is empty\n");
+        printf("**CACHE-END**\n\n");
+        return;
+    }
+    size_t len = cache->len;
+    for (size_t i = 0; i < len; ++i) {
+        printf("Cache[%zu]--> ",i);
+        printList(ptr[i].linked_list);
+        printf("number_nodes_in_linked_list:%zu\n",ptr[i].number_nodes_in_linked_list);
+        printf("max_nodes_allow:%zu\n\n",ptr[i].max_nodes_allow);
+    }
+    printf("\n***CACHE-END***\n\n");
+}
 void printCacheStats(struct CacheStats *cacheStats){
     if (cacheStats == NULL){
         printf("cacheStats is empty\n");
+        return;
     }
     printf("CACHE-STATS\n");
-    printf("capacity: %lu\n",cacheStats->capacity);
     printf("memory_read: %lu\n",cacheStats->memory_read);
     printf("memory_write: %lu\n",cacheStats->memory_write);
     printf("cache_hit: %lu\n",cacheStats->cache_hit);

@@ -33,11 +33,25 @@ int main( int argc, char *argv[argc+1]) {
         printf("error");
         return EXIT_SUCCESS;
     }
-    long associativity = getAssociativity(argv[2]);
+    long associativity;
+    unsigned int associativityAction = checkAssociativityInput(argv[2]);
+
+    // action 1,2,3 -> direct, fully, n associativity and 0 is error
+    if (associativityAction == 1){
+        associativity = 1;
+    } else if (associativityAction == 2){
+        associativity = calculateNumberCacheAddresses(cache_size, block_size);
+    } else if (associativityAction == 3){
+        associativity = getAssociativity(argv[2]);
+    } else{
+        printf("DEV ERROR: associativityAction input is incorrect\n");
+        return 0;
+    }
     int cache_policy = getCachePolicy(argv[3]);
 
     printf("cache_size: %lu\n",cache_size);
     printf("block_size: %lu\n",block_size);
+    printf("associativityAction: %d\n",associativityAction);
     printf("associativity: %lu\n",associativity);
     printf("cache_policy: %d\n",cache_policy);
 
@@ -61,40 +75,77 @@ int main( int argc, char *argv[argc+1]) {
     // Close the file and destroy memory allocations
     fclose(fp);
 
-    struct Node *linked_list=NULL;
+    struct Cache *cache=NULL;
     struct CacheStats *cacheStats=NULL;
-    linked_list = createCacheLinkedList(linked_list,calculateNumberCacheAddresses(cache_size,block_size),&cacheStats);
+    cache = createCache(cache, cache_size, block_size,associativityAction, associativity, &cacheStats);
     printCacheStats(cacheStats);
     free(cacheStats);
-    printList(linked_list);
-    deleteLinkedList(&linked_list);
-    printList(linked_list);
+
+    printCache(cache);
+    //printList(linked_list);
+    //deleteLinkedList(&linked_list);
+    //printList(linked_list);
 
 
     return EXIT_SUCCESS;
 }
 
 // Create an empty cache with given capacity or lines
-struct Node *createCacheLinkedList(struct Node *head, unsigned int capacity,struct CacheStats **cacheStats){
-    struct Node *ptr = head;
-    if (ptr == NULL){
-        // Initialize empty cache
-        for (int i = 0; i < capacity; ++i) {
-            insertNodeInTheBeginning(&ptr,0,true);
-        }
-        struct CacheStats *new_cacheStats = malloc(sizeof(struct CacheStats));
-        new_cacheStats->cache_hit=0;
-        new_cacheStats->cache_miss=0;
-        new_cacheStats->memory_write=0;
-        new_cacheStats->memory_read=0;
-        new_cacheStats->capacity=capacity;
-        (*cacheStats) = new_cacheStats;
+struct Cache *createCache(struct Cache *cache, size_t cache_size, size_t block_size,unsigned int assocAction, size_t assoc, struct CacheStats **cacheStats){
 
-        return ptr;
+    assert(cache == NULL);
+    struct Cache *new_cache = NULL;
+    if ( assocAction == 1){
+        size_t number_addresses = calculateNumberCacheAddresses(cache_size, block_size);
+        // Initialize cache in an array
+        new_cache = malloc(number_addresses*sizeof(struct Cache));
+        for (size_t i = 0; i < number_addresses; ++i) {
+            new_cache[i].len = number_addresses;
+            new_cache[i].max_nodes_allow = assoc;
+            new_cache[i].number_nodes_in_linked_list = 0;
+            new_cache[i].linked_list = NULL;
+        }
+    } else if ( assocAction == 2 ){
+        size_t number_addresses = calculateNumberCacheAddresses(cache_size, block_size);
+        new_cache = malloc(sizeof(struct Cache));
+        new_cache[0].len = 1;
+        new_cache[0].max_nodes_allow = number_addresses;
+        new_cache[0].number_nodes_in_linked_list = 0;
+        new_cache[0].linked_list = NULL;
+    } else if (assocAction == 3){
+        size_t number_addresses = calculateNumberCacheAddresses(cache_size, block_size)/assoc;
+        if ( number_addresses == 0 ){
+            number_addresses = calculateNumberCacheAddresses(cache_size, block_size);
+            if ( number_addresses == 0 ){
+                return NULL;
+            }
+            new_cache = malloc(sizeof(struct Cache));
+            new_cache[0].len = 1;
+            new_cache[0].max_nodes_allow = number_addresses;
+            new_cache[0].number_nodes_in_linked_list = 0;
+            new_cache[0].linked_list = NULL;
+        } else{
+            // Initialize cache in an array
+            new_cache = malloc(number_addresses*sizeof(struct Cache));
+            for (size_t i = 0; i < number_addresses; ++i) {
+                new_cache[i].len = number_addresses;
+                new_cache[i].max_nodes_allow = assoc;
+                new_cache[i].number_nodes_in_linked_list = 0;
+                new_cache[i].linked_list = NULL;
+            }
+        }
+
     } else{
-        printf("DEV 4:Linked List is not empty\n");
         return NULL;
     }
+    struct CacheStats *new_cacheStats = malloc(sizeof(struct CacheStats));
+    new_cacheStats->cache_hit=0;
+    new_cacheStats->cache_miss=0;
+    new_cacheStats->memory_write=0;
+    new_cacheStats->memory_read=0;
+    (*cacheStats) = new_cacheStats;
+
+    return new_cache;
 }
 bool IsPowerOfTwo(unsigned long x){
     return (x != 0) && ((x & (x - 1)) == 0);
