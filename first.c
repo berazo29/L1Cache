@@ -13,13 +13,34 @@
 #include "first.h"
 #define ARR_MAX 100
 
-void fifo(struct Cache **pCache, struct CacheStats **pCacheStats){
+void fifo(struct Cache **cache, size_t key, struct CacheStats **cacheStats){
 
+}
+int read(struct Cache **cache, size_t key, struct CacheStats **cacheStats ){
+    struct Cache *ptr = (*cache);
+    struct CacheStats *pCacheStats = (*cacheStats);
+    if ( ptr == NULL || pCacheStats == NULL ){
+        return 0;
+    }
+    pCacheStats->memory_read++;
+    size_t len = ptr[0].len;
+    size_t index = key % len;
+    struct Node *plinkedList = ptr[index].linked_list;
+    if (plinkedList == NULL){
+        return 0;
+    }
+    while (plinkedList != NULL){
+        if (plinkedList->address == key){
+            return 1;
+        }
+        plinkedList = plinkedList->next;
+    }
+    return 0;
 }
 void write(struct Cache **cache, size_t key, struct CacheStats **cacheStats ){
     struct Cache *ptr = (*cache);
     struct CacheStats *pCacheStats = (*cacheStats);
-    if (ptr == NULL){
+    if ( ptr == NULL || pCacheStats == NULL ){
         return;
     }
     size_t len = ptr[0].len;
@@ -28,7 +49,6 @@ void write(struct Cache **cache, size_t key, struct CacheStats **cacheStats ){
     insertNodeInTheBeginning(&ptr[index].linked_list, key);
     ptr[index].number_nodes_in_linked_list++;
     pCacheStats->memory_write++;
-
 }
 int main( int argc, char *argv[argc+1]) {
 
@@ -99,13 +119,17 @@ int main( int argc, char *argv[argc+1]) {
     printCache(cache,0);
 
     // TEST WRITE
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 5; ++i) {
         write(&cache, i, &cacheStats);
+    }
+    for (int i = 0; i < 20; ++i) {
+        int x = read(&cache,i,&cacheStats);
+        printf("found i:%d %d\n",i,x);
     }
 
     printCacheStats(cacheStats);
     free(cacheStats);
-    printCache(cache,1);
+    printCache(cache,0);
     //printList(linked_list);
     //deleteLinkedList(&linked_list);
     //printList(linked_list);
