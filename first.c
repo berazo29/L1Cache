@@ -13,6 +13,23 @@
 #include "first.h"
 #define ARR_MAX 100
 
+void fifo(struct Cache **pCache, struct CacheStats **pCacheStats){
+
+}
+void write(struct Cache **cache, size_t key, struct CacheStats **cacheStats ){
+    struct Cache *ptr = (*cache);
+    struct CacheStats *pCacheStats = (*cacheStats);
+    if (ptr == NULL){
+        return;
+    }
+    size_t len = ptr[0].len;
+    size_t index = key % len;
+
+    insertNodeInTheBeginning(&ptr[index].linked_list, key);
+    ptr[index].number_nodes_in_linked_list++;
+    pCacheStats->memory_write++;
+
+}
 int main( int argc, char *argv[argc+1]) {
 
     long cache_size;
@@ -79,9 +96,16 @@ int main( int argc, char *argv[argc+1]) {
     struct CacheStats *cacheStats=NULL;
     cache = createCache(cache, cache_size, block_size,associativityAction, associativity, &cacheStats);
     printCacheStats(cacheStats);
-    free(cacheStats);
+    printCache(cache,0);
 
-    printCache(cache);
+    // TEST WRITE
+    for (int i = 0; i < 10; ++i) {
+        write(&cache, i, &cacheStats);
+    }
+
+    printCacheStats(cacheStats);
+    free(cacheStats);
+    printCache(cache,1);
     //printList(linked_list);
     //deleteLinkedList(&linked_list);
     //printList(linked_list);

@@ -74,29 +74,46 @@ void printList(struct Node *head){
     struct Node *ptr = head;
 
     while (ptr != NULL){
-        printf("addr:%lu\t", ptr->address);
+        printf("addr:%lu  ", ptr->address);
         ptr = ptr->next;
     }
     printf("(NULL)\n");
 
 }
 
-void printCache(struct Cache *cache){
-    struct Cache *ptr = cache;
-    printf("\n\n***CACHE***\n");
-    if (ptr == NULL){
-        printf("cache is empty\n");
-        printf("**CACHE-END**\n\n");
-        return;
+void printCache(struct Cache *cache, int dev){
+    if (dev == 1){
+        struct Cache *ptr = cache;
+        printf("\n\n***CACHE***\n");
+        if (ptr == NULL){
+            printf("cache is empty\n");
+            printf("**CACHE-END**\n\n");
+            return;
+        }
+        size_t len = cache->len;
+        for (size_t i = 0; i < len; ++i) {
+            printf("Cache[%zu]--> ",i);
+            printList(ptr[i].linked_list);
+            printf("number_nodes_in_linked_list:%zu\n",ptr[i].number_nodes_in_linked_list);
+            printf("max_nodes_allow:%zu\n\n",ptr[i].max_nodes_allow);
+        }
+        printf("\n***CACHE-END***\n\n");
+    } else{
+        struct Cache *ptr = cache;
+        printf("\n\n***CACHE***\n");
+        if (ptr == NULL){
+            printf("cache is empty\n");
+            printf("**CACHE-END**\n\n");
+            return;
+        }
+        size_t len = cache->len;
+        printf("max_nodes_allow:%zu\n\n",ptr[0].max_nodes_allow);
+        for (size_t i = 0; i < len; ++i) {
+            printf("Cache[%zu]--> ",i);
+            printList(ptr[i].linked_list);
+        }
+        printf("\n***CACHE-END***\n\n");
     }
-    size_t len = cache->len;
-    for (size_t i = 0; i < len; ++i) {
-        printf("Cache[%zu]--> ",i);
-        printList(ptr[i].linked_list);
-        printf("number_nodes_in_linked_list:%zu\n",ptr[i].number_nodes_in_linked_list);
-        printf("max_nodes_allow:%zu\n\n",ptr[i].max_nodes_allow);
-    }
-    printf("\n***CACHE-END***\n\n");
 }
 void printCacheStats(struct CacheStats *cacheStats){
     if (cacheStats == NULL){
