@@ -97,6 +97,9 @@ struct Cache *createCache(struct Cache *cache, size_t cache_size, size_t block_s
     struct Cache *new_cache = NULL;
     if ( assocAction == 1){
         size_t number_addresses = calculateNumberCacheAddresses(cache_size, block_size);
+        if (number_addresses == 0 ){
+            return NULL;
+        }
         // Initialize cache in an array
         new_cache = malloc(number_addresses*sizeof(struct Cache));
         for (size_t i = 0; i < number_addresses; ++i) {
@@ -107,6 +110,9 @@ struct Cache *createCache(struct Cache *cache, size_t cache_size, size_t block_s
         }
     } else if ( assocAction == 2 ){
         size_t number_addresses = calculateNumberCacheAddresses(cache_size, block_size);
+        if (number_addresses == 0 ){
+            return NULL;
+        }
         new_cache = malloc(sizeof(struct Cache));
         new_cache[0].len = 1;
         new_cache[0].max_nodes_allow = number_addresses;
