@@ -189,7 +189,7 @@ Temporary Items
 # End of https://www.toptal.com/developers/gitignore/api/c,osx,clion
 
 # Local
-
+pa5_autograder/
 .idea/
 file1.txt
 file2.txt
