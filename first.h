@@ -6,12 +6,6 @@
 #define L1CACHE_FIRST_H
 
 // DATA STRUCTURE
-struct CacheStats{
-    size_t memory_read;
-    size_t memory_write;
-    size_t cache_hit;
-    size_t cache_miss;
-};
 struct Node {
     u_int64_t address;
     struct Node *next;
@@ -23,6 +17,7 @@ struct Cache {
     size_t max_nodes_allow;
     struct Node *linked_list;
 };
+
 // Data-Structure Nodes Functions
 void insertNodeInTheBeginning(struct Node** head, u_int64_t new_data);
 void deleteLinkedList(struct Node** head);
@@ -33,9 +28,11 @@ long getCacheSize(char *arg);
 long getBlockSize(char *arg);
 int getCachePolicy(char *arg);
 unsigned int getAssociativity(char *arg);
-int getReadWriteAction(char action);
+
 size_t calculateNumberCacheAddresses(size_t cache_size, size_t cache_block );
-struct Cache *createCache(struct Cache *cache, size_t cache_size, size_t block_size,unsigned int assocAction, size_t assoc, struct CacheStats **cacheStats);
+struct Cache *
+createCache(struct Cache *cache, size_t cache_size, size_t block_size, unsigned int assocAction, size_t assoc);
+
 // Utility functions
 bool IsPowerOfTwo(unsigned long x);
 bool isEven(long int n);
@@ -155,25 +152,6 @@ void printCache(struct Cache *cache, int dev){
             printList(ptr[i].linked_list);
         }
         printf("\n***CACHE-END***\n\n");
-    }
-}
-void printCacheStats(struct CacheStats *cacheStats, int Dev){
-    if (cacheStats == NULL){
-        printf("cacheStats is empty\n");
-        return;
-    }
-    if (Dev == 1) {
-        printf("CACHE-STATS\n");
-        printf("memory_read: %lu\n", cacheStats->memory_read);
-        printf("memory_write: %lu\n", cacheStats->memory_write);
-        printf("cache_hit: %lu\n", cacheStats->cache_hit);
-        printf("cache_miss: %lu\n", cacheStats->cache_miss);
-        printf("CACHE-STATS-END\n");
-    } else{
-        printf("memread:%lu\n", cacheStats->memory_read);
-        printf("memwrite:%lu\n", cacheStats->memory_write);
-        printf("cachehit:%lu\n", cacheStats->cache_hit);
-        printf("cachemiss:%lu\n", cacheStats->cache_miss);
     }
 }
 

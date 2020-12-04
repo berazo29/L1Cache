@@ -11,110 +11,168 @@
 #include <string.h>
 #include <ctype.h>
 #include "first.h"
+#include <math.h>
+
 #define ARR_MAX 100
 
-void insertNodeInCache( struct Cache **cache, u_int64_t key);
-int searchInCache(struct Cache **cache, u_int64_t key );
-void fifo( struct Cache **cache, u_int64_t key );
-void lru( struct Cache **cache, u_int64_t key );
+int calculateSets(size_t cache_size,size_t block_size,unsigned int assocAction, size_t assoc);
+size_t ** createNewCache(int sets, int blocks);
+void deleteCache(size_t ** cache, int sets, int blocks);
+int searchAddressInCache(size_t** cache, size_t address, int num_block_offsets, int num_sets, int blocks);
+size_t** LRU(size_t** cache, size_t address, int block_offset, int sets, int blocks);
+size_t** insertNewTagToCache(size_t** cache, size_t address, int blocks_offset, int sets, int blocks);
 
+// GLOBAL
+int MEM_READS = 0;
+int MEM_WRITES = 0;
+int CACHE_HITS = 0;
+int CACHE_MISS = 0;
+int NUM_SETS = 0;
+int NUM_BLOCKS = 0;
+int SET_BITS = 0;
+int OFFSET_BITS = 0;
 
-void lruManager(struct Cache **cache, u_int64_t key, struct CacheStats **cacheStats, int action){
-    struct Cache *pCache = (*cache);
-    struct CacheStats *pCacheStats = (*cacheStats);
-    if (pCache == NULL || pCacheStats == NULL){
-        return;
-    }
-    unsigned int index = key % pCache->len;
+// Print for graters
+void printSubmitOutputFormat(){
 
-    // READ
-    if (action == 1){
-        int found = searchInCache(&pCache,key);
-        if (found){
-            pCacheStats->cache_hit++;
-        } else{
-            pCacheStats->memory_read++;
-            pCacheStats->cache_miss++;
-            if (pCache[index].number_nodes_in_linked_list < pCache[index].max_nodes_allow){
-                insertNodeInCache(&pCache,key);
-            } else{
-                lru(&pCache,key);
-            }
-        }
-        // WRITE
-    } else if (action == 2){
-        pCacheStats->memory_write++;
-        int found = searchInCache(&pCache,key);
-        if (found){
-            pCacheStats->cache_hit++;
-        } else{
-            pCacheStats->cache_miss++;
-            pCacheStats->memory_read++;
-
-            if (pCache[index].number_nodes_in_linked_list < pCache[index].max_nodes_allow){
-                insertNodeInCache(&pCache,key);
-            } else{
-                lru(&pCache,key);
-            }
-        }
-
-    } else{
-        printf("ERROR READ OR WRITE\n");
-    }
-
-
+    printf("memread:%d\n", MEM_READS);
+    printf("memwrite:%d\n", MEM_WRITES);
+    printf("cachehit:%d\n", CACHE_HITS);
+    printf("cachemiss:%d\n", CACHE_MISS);
 }
 
-void fifoManager(struct Cache **cache, u_int64_t key, struct CacheStats **cacheStats, int action){
-    struct Cache *pCache = (*cache);
-    struct CacheStats *pCacheStats = (*cacheStats);
-    if (pCache == NULL || pCacheStats == NULL){
-        return;
-    }
-    unsigned int index = key % pCache->len;
+// insert the cache
+size_t** insertNewTagToCache(size_t** cache, size_t address, int blocks_offset, int sets, int blocks){
 
-    // READ
-    if (action == 1){
-        int found = searchInCache(&pCache,key);
-        if (found){
-            pCacheStats->cache_hit++;
-        } else{
-            pCacheStats->memory_read++;
-            pCacheStats->cache_miss++;
-            if (pCache[index].number_nodes_in_linked_list < pCache[index].max_nodes_allow){
-                insertNodeInCache(&pCache,key);
-            } else{
-                fifo(&pCache,key);
-            }
+    size_t index = (address >> blocks_offset) & ((1 << sets) - 1);
+
+    int flag = 0;
+    int i;
+
+    // Add to the cache
+    for(i = 0; i < blocks; i++){
+
+        // Eviction is not required
+        if(cache[index][i] == (size_t) NULL){
+            cache[index][i] = address >> (blocks_offset + sets);
+            flag = 1;
+            break;
         }
-    // WRITE
-    } else if (action == 2){
-        pCacheStats->memory_write++;
-        int found = searchInCache(&pCache,key);
-        if (found){
-            pCacheStats->cache_hit++;
-        } else{
-            pCacheStats->cache_miss++;
-            pCacheStats->memory_read++;
+    }
+    if( flag == 0 ){
 
-            if (pCache[index].number_nodes_in_linked_list < pCache[index].max_nodes_allow){
-                insertNodeInCache(&pCache,key);
-            } else{
-                fifo(&pCache,key);
-            }
+        for(i = 1; i < blocks; i++){
+            cache[index][i - 1] = cache[index][i];
         }
+        cache[index][blocks - 1] = address >> (blocks_offset + sets);
+    }
+    return cache;
+}
 
-    } else{
-        printf("ERROR READ OR WRITE\n");
+// Update the block by the most recent use
+size_t** LRU(size_t** cache, size_t address, int block_offset, int sets, int blocks){
+    // use bit manipulation to obtain the the corresponding set and tag
+    size_t index = (address >> block_offset) & ((1 << sets) - 1);
+    size_t tag = address >> (block_offset + sets);
+    int flag = 0;
+    int i;
+    for(i = 0; i < blocks - 1; i++){
+        if(cache[index][i + 1] == (size_t) NULL){
+            break;
+        }
+        // Find for a true flag
+        if(cache[index][i] == tag || flag){
+            flag = 1;
+            cache[index][i] = cache[index][i + 1];
+        }
+    }
+    cache[index][i] = tag;
+
+    return cache;
+}
+
+int searchAddressInCache(size_t** cache, size_t address, int num_block_offsets, int num_sets, int blocks){
+
+    size_t setIndex = (address >> num_block_offsets) & ((1 << num_sets) - 1);
+    // Find the set in the block 1 for true and 0 for false
+    for(int i = 0; i < blocks; i++){
+
+        if ((address >> (num_sets + num_block_offsets)) == cache[setIndex][i]){
+            return 1;
+        }
+    }
+    return 0;
+}
+
+size_t ** createNewCache(int sets, int blocks){
+
+    // Allocate an 2D array as a new cache with with sets and blocks
+    size_t** cache =(size_t**) malloc(sizeof(size_t*) * sets);
+    for(int i = 0; i < sets; i++){
+        cache[i] = (size_t*) malloc(sizeof(size_t) * blocks);
+        for(int j = 0; j < blocks; j++){
+            cache[i][j] = (size_t) NULL;
+        }
+    }
+    return cache;
+}
+
+// Free the 2d array allocated
+void deleteCache(size_t ** cache, int sets, int blocks){
+    for(int i = 0; i < sets; i++){
+        for (int j = 0; j < blocks; j++){
+            cache[i][j] = (size_t) NULL;
+        }
+        free(cache[i]);
+        cache[i] = NULL;
+    }
+    free(cache);
+    cache = NULL;
+}
+
+// read from trace file and read/write addresses
+void updateCache(FILE * trace_file, size_t** cache, int blocks_offset, int sets, int blocks, int cache_policy){
+
+    // Set the policy to FIFO or LRU
+    int isLRU;
+    if (cache_policy == 1){
+        isLRU=0;
+    } else if ( cache_policy == 2){
+        isLRU=1;
     }
 
+    char action;
+    size_t address;
+    // reads until end of file
+    while((fscanf(trace_file, "%c %zx\n", &action, &address) != EOF) && (action != '#')){
 
+        // Increment for each write
+        if(action != 'R') {
+            MEM_WRITES++;
+        }
+
+        int isHit = searchAddressInCache(cache, address, blocks_offset, sets, blocks);
+        if(isHit == 1){
+            CACHE_HITS++;
+
+            // Use th LRU eviction policy
+            if(isLRU != 0){
+                // update which block has been most recently used
+                cache = LRU(cache, address, blocks_offset, sets, blocks);
+            }
+        }else {
+            // Update miss and MEM_READS
+            CACHE_MISS++;
+            MEM_READS++;
+
+            cache = insertNewTagToCache(cache, address, blocks_offset, sets, blocks);
+        }
+    }
 }
 int main( int argc, char *argv[argc+1]) {
 
     long cache_size;
     long block_size;
-    char trace_file[ARR_MAX];
 
     //File name from arguments
     if (argc != 6 ){
@@ -141,7 +199,7 @@ int main( int argc, char *argv[argc+1]) {
     } else if (associativityAction == 3){
         associativity = getAssociativity(argv[2]);
     } else{
-        printf("DEV ERROR: associativityAction input is incorrect\n");
+        //printf("DEV ERROR: associativityAction input is incorrect\n");
         return 0;
     }
     int cache_policy = getCachePolicy(argv[3]);
@@ -157,194 +215,60 @@ int main( int argc, char *argv[argc+1]) {
     fp = fopen( argv[5], "r");
     // Check if the file is empty
     if ( fp == NULL ){
-        printf("DEV Error 3:Unable to read the file\n");
+        //printf("DEV Error 3:Unable to read the file\n");
         printf("error\n");
         return EXIT_SUCCESS;
     }
 
-    // File data
-    char action;
-    unsigned long long memory_address = 0x0;
-    struct Cache *cache=NULL;
-    struct CacheStats *cacheStats=NULL;
-    cache = createCache(cache, cache_size, block_size,associativityAction, associativity, &cacheStats);
+    // Use for develop
+    int usedLikedList = 0;
 
-    //printf("sizeof(associativity[]:%lu\n",sizeof(associativity));
-
-    while ( fscanf( fp, "%c %llx",&action, &memory_address) != EOF ){
-
-        // check for missing lines
-        if ( getReadWriteAction(action) == 0 ){
-            continue;
-        }
-        //printf("action: %c %d memory_address: %llx",action,getReadWriteAction(action), memory_address );
-        if (cache_policy == 1){
-            fifoManager(&cache,memory_address,&cacheStats,getReadWriteAction(action));
-        } else if (cache_policy == 2){
-            lruManager(&cache,memory_address,&cacheStats,getReadWriteAction(action));
-        } else{
-            printf("error");
-        }
-
-        //fifo(&cache,memory_address);
-        //printf("%llu mod 4 = %d\n",memory_address,(int)(memory_address%4));
-
+    if (usedLikedList == 0){
+        struct Cache *cache_linked_list = NULL;
+        createCache(cache_linked_list,cache_size,block_size,associativityAction,associativity);
     }
+
+    // Calculate parameters for the new cache
+    NUM_SETS = calculateSets(cache_size, block_size, associativityAction, associativity);
+    NUM_BLOCKS = cache_size / (block_size * NUM_SETS);
+
+    // Calculate the sets and offset bits
+    SET_BITS = log(NUM_SETS) / log(2);
+    OFFSET_BITS = log(block_size) / log(2);
+
+    // Create a new cache
+    size_t** cache = createNewCache(NUM_SETS, NUM_BLOCKS);
+
+    // Receive the address and simulate the cache
+    updateCache(fp, cache, OFFSET_BITS, SET_BITS, NUM_BLOCKS, cache_policy);
+
+    // Print the results
+    printSubmitOutputFormat();
+
     // Close the file and destroy memory allocations
     fclose(fp);
-    cacheStats->memory_read = cacheStats->memory_read/2;
-    cacheStats->cache_hit = cacheStats->cache_hit+cacheStats->memory_read;
-    cacheStats->cache_miss = cacheStats->cache_miss/2;
-    //printCache(cache,1);
-    printCacheStats(cacheStats,0);
-    free(cacheStats);
-
-    //printCache(cache,0);
-    //printList(linked_list);
-    //deleteLinkedList(&linked_list);
-    //printList(linked_list);
-
+    deleteCache(cache, NUM_SETS, NUM_BLOCKS);
 
     return EXIT_SUCCESS;
 }
-// Eviction policy lru
-void lru( struct Cache **cache, u_int64_t key ){
-    struct Cache *pCache = (*cache);
-    assert(pCache != NULL );
-    int NodeFound = searchInCache( &pCache, key);
 
-    if (NodeFound){
-        // 1. The pCache is not empty, at least have one Node
-        // 2.
-        // Remove and insert in the head of the linked list in the cache
-        // Remove node at position
-        size_t len = pCache[0].len;
-        size_t index = key % len;
-        struct Node *linked_list = pCache[index].linked_list;
-
-        // If one Node node
-        if (pCache[index].max_nodes_allow == 1){
-            pCache[index].linked_list->address=key;
-        } else{
-            // More than one node
-            if (pCache[index].linked_list->address == key){
-                // if in the key in head nothing to insert
-                return;
-            } else{
-                removeNodeAtAddress(&pCache[index].linked_list, key);
-                pCache[index].number_nodes_in_linked_list--;
-                insertNodeInTheBeginning(&pCache[index].linked_list, key);
-                pCache[index].number_nodes_in_linked_list++;
-                // Remove last node if greater than the max_nodes_allow
-                if (pCache[index].number_nodes_in_linked_list > pCache[index].max_nodes_allow){
-                    // Remove the last Node
-                    pCache[index].linked_list = removeLastNode(pCache[index].linked_list);
-                }
-            }
-        }
-        //removeNodeAtAddress(&pCache[index].linked_list, key);
-
-
-    } else{
-        // 1. The cache linked list could be empty
-        // Remove last node and insert new Node
-        size_t len = pCache[0].len;
-        size_t index = key % len;
-        struct Node *linked_list = pCache[index].linked_list;
-        if (linked_list == NULL){
-            insertNodeInTheBeginning(&pCache[index].linked_list, key);
-            pCache[index].number_nodes_in_linked_list++;
-        } else{
-            //printf("DEV: not empty linkedlist\n");
-            // Linked List contain nodes
-            insertNodeInTheBeginning(&pCache[index].linked_list, key);
-            pCache[index].number_nodes_in_linked_list++;
-            if (pCache[index].number_nodes_in_linked_list > pCache[index].max_nodes_allow){
-                pCache[index].linked_list = removeLastNode(pCache[index].linked_list);
-                pCache[index].number_nodes_in_linked_list--;
-            }
-
-        }
-    }
-}
-// Eviction policy fifo
-void fifo(struct Cache **cache, u_int64_t key ){
-
-    struct Cache *pCache = (*cache);
-    assert(pCache != NULL );
-    int NodeFound = searchInCache( &pCache, key);
-    if ( NodeFound ){
-        printf("DEV ERROR 7: key is the list already\n");
-        return;
-    } else{
-        size_t len = pCache[0].len;
-        size_t index = key % len;
-        struct Node *linked_list = pCache[index].linked_list;
-        // List is empty
-        if (linked_list == NULL){
-            insertNodeInTheBeginning(&pCache[index].linked_list, key);
-            pCache[index].number_nodes_in_linked_list++;
-        } else{
-            // list have one node
-            // More Than One Nodes
-            if (pCache[index].number_nodes_in_linked_list < pCache[index].max_nodes_allow){
-                insertNodeInTheBeginning(&pCache[index].linked_list, key);
-                pCache[index].number_nodes_in_linked_list++;
-            } else{
-                insertNodeInTheBeginning(&pCache[index].linked_list, key);
-                // Remove the last Node
-                pCache[index].linked_list = removeLastNode(pCache[index].linked_list);
-                if (pCache[index].number_nodes_in_linked_list == pCache[index].max_nodes_allow){
-                    return;
-                } else{
-                    pCache[index].number_nodes_in_linked_list++;
-                }
-
-            }
-
-        }
-    }
-
-}
-
-// Search if Node exits in Cache linked-list
-int searchInCache(struct Cache **cache, u_int64_t key ){
-    struct Cache *ptr = (*cache);
-    assert(ptr != NULL);
-    if ( ptr == NULL ){
-        return 0;
-    }
-    //pCacheStats->memory_read++;
-    size_t len = ptr[0].len;
-    size_t index = key % len;
-    struct Node *plinkedList = ptr[index].linked_list;
-    if (plinkedList == NULL){
-        return 0;
-    }
-    while (plinkedList != NULL){
-        if (plinkedList->address == key){
-            return 1;
-        }
-        plinkedList = plinkedList->next;
-    }
-    return 0;
-}
-
-// Insert in the beginning of the linked list in the cache
-void insertNodeInCache(struct Cache **cache, u_int64_t key){
-    struct Cache *ptr = (*cache);
-    if ( ptr == NULL ){
-        return;
-    }
-    size_t len = ptr[0].len;
-    size_t index = key % len;
-
-    insertNodeInTheBeginning(&ptr[index].linked_list, key);
-    ptr[index].number_nodes_in_linked_list++;
-
-}
 // Create an empty cache with given capacity or lines
-struct Cache *createCache(struct Cache *cache, size_t cache_size, size_t block_size,unsigned int assocAction, size_t assoc, struct CacheStats **cacheStats){
+int calculateSets(size_t cache_size,size_t block_size,unsigned int assocAction, size_t assoc){
+    int set=0;
+    if (assocAction == 1){
+        set = cache_size/block_size;
+        return set;
+    } else if (assocAction == 2){
+        return 1;
+    } else if (assocAction == 3){
+        set = cache_size/(block_size*assoc);
+        return set;
+    } else{
+        perror("Error assocAction");
+        return 0;
+    }
+}
+struct Cache *createCache(struct Cache *cache, size_t cache_size, size_t block_size, unsigned int assocAction, size_t assoc) {
 
     assert(cache == NULL);
     struct Cache *new_cache = NULL;
@@ -397,13 +321,6 @@ struct Cache *createCache(struct Cache *cache, size_t cache_size, size_t block_s
     } else{
         return NULL;
     }
-    struct CacheStats *new_cacheStats = malloc(sizeof(struct CacheStats));
-    new_cacheStats->cache_hit=0;
-    new_cacheStats->cache_miss=0;
-    new_cacheStats->memory_write=0;
-    new_cacheStats->memory_read=0;
-    (*cacheStats) = new_cacheStats;
-
     return new_cache;
 }
 bool IsPowerOfTwo(unsigned long x){
@@ -577,25 +494,4 @@ int getCachePolicy(char *arg){
 }
 size_t calculateNumberCacheAddresses(size_t cache_size, size_t cache_block ){
     return cache_size/cache_block;
-}
-int getReadWriteAction(char action){
-    /* DOC
-     * 0 for errors
-     * 1 for READ
-     * 2 for WRITE
-     */
-    if (action == '\0'){
-        return 0;
-    }
-
-    char r='r';
-    char w='w';
-    char str = (char)tolower(action);
-    if ( str == r){
-        return 1;
-    } else if ( str == w ){
-        return 2;
-    } else{
-        return 0;
-    }
 }
