@@ -18,7 +18,52 @@ int searchInCache(struct Cache **cache, u_int64_t key );
 void fifo( struct Cache **cache, u_int64_t key );
 void lru( struct Cache **cache, u_int64_t key );
 
+void fifoManager(struct Cache **cache, u_int64_t key, struct CacheStats **cacheStats, int action){
+    struct Cache *pCache = (*cache);
+    struct CacheStats *pCacheStats = (*cacheStats);
+    if (pCache == NULL || pCacheStats == NULL){
+        return;
+    }
+    unsigned int index = key % pCache->len;
 
+    // READ
+    if (action == 1){
+        int found = searchInCache(&pCache,key);
+        if (found){
+            pCacheStats->cache_hit++;
+        } else{
+            //pCacheStats->memory_read++;
+            pCacheStats->cache_miss++;
+
+//            if (pCache[index].number_nodes_in_linked_list < pCache[index].max_nodes_allow){
+//                insertNodeInCache(&pCache,key);
+//            } else{
+//                fifo(&pCache,key);
+//            }
+        }
+    // WRITE
+    } else if (action == 2){
+        int found = searchInCache(&pCache,key);
+        if (found){
+            pCacheStats->memory_read++;
+            pCacheStats->cache_hit++;
+        } else{
+
+            pCacheStats->memory_write++;
+            if (pCache[index].number_nodes_in_linked_list < pCache[index].max_nodes_allow){
+                insertNodeInCache(&pCache,key);
+            } else{
+                fifo(&pCache,key);
+            }
+            pCacheStats->memory_read++;
+        }
+
+    } else{
+        printf("ERROR READ OR WRITE\n");
+    }
+
+
+}
 int main( int argc, char *argv[argc+1]) {
 
     long cache_size;
@@ -79,23 +124,20 @@ int main( int argc, char *argv[argc+1]) {
     cache = createCache(cache, cache_size, block_size,associativityAction, associativity, &cacheStats);
 
     //printf("sizeof(associativity[]:%lu\n",sizeof(associativity));
+
     while ( fscanf( fp, "%c %llx",&action, &memory_address) != EOF ){
-        //printf("action: %c memory_address: %x",action, memory_address );
+
+        // check for missing lines
         if ( getReadWriteAction(action) == 0 ){
             continue;
         }
+        printf("action: %c %d memory_address: %llx",action,getReadWriteAction(action), memory_address );
+
+
+        fifoManager(&cache,memory_address,&cacheStats,getReadWriteAction(action));
         //fifo(&cache,memory_address);
-        lru(&cache,memory_address);
-//        if (getReadWriteAction(action) == 1){
-//            int x = searchInCache(&cache, memory_address);
-//            if (x){
-//                cacheStats->memory_read++;
-//            }
-//        } else if (getReadWriteAction(action) == 2){
-//            insertNodeInCache(&cache, memory_address);
-//        } else{
-//            printf("error in while c x action memory_address\n");
-//        }
+        printf("%llu mod 4 = %d\n",memory_address,(int)(memory_address%4));
+
     }
     // Close the file and destroy memory allocations
     fclose(fp);
