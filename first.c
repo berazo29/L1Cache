@@ -15,44 +15,7 @@
 
 void insertNodeInCache(struct Cache **cache, size_t key);
 int searchInCache(struct Cache **cache, size_t key );
-
-void fifo(struct Cache **cache, size_t key ){
-
-    struct Cache *pCache = (*cache);
-    assert(pCache != NULL );
-    int NodeFound = searchInCache( &pCache, key);
-    if ( NodeFound ){
-        return;
-    } else{
-        size_t len = pCache[0].len;
-        size_t index = key % len;
-        struct Node *linked_list = pCache[index].linked_list;
-        // List is empty
-        if (linked_list == NULL){
-            insertNodeInTheBeginning(&pCache[index].linked_list, key);
-            pCache[index].number_nodes_in_linked_list++;
-        } else{
-            // list have one node
-            // More Than One Nodes
-            if (pCache[index].number_nodes_in_linked_list < pCache[index].max_nodes_allow){
-                insertNodeInTheBeginning(&pCache[index].linked_list, key);
-                pCache[index].number_nodes_in_linked_list++;
-            } else{
-                insertNodeInTheBeginning(&pCache[index].linked_list, key);
-                // Remove the last Node
-                pCache[index].linked_list = removeLastNode(pCache[index].linked_list);
-                if (pCache[index].number_nodes_in_linked_list == pCache[index].max_nodes_allow){
-                    return;
-                } else{
-                    pCache[index].number_nodes_in_linked_list++;
-                }
-
-            }
-
-        }
-    }
-
-}
+void fifo(struct Cache **cache, size_t key );
 
 int main( int argc, char *argv[argc+1]) {
 
@@ -146,6 +109,47 @@ int main( int argc, char *argv[argc+1]) {
 
     return EXIT_SUCCESS;
 }
+
+// Eviction policy fifo
+void fifo(struct Cache **cache, size_t key ){
+
+    struct Cache *pCache = (*cache);
+    assert(pCache != NULL );
+    int NodeFound = searchInCache( &pCache, key);
+    if ( NodeFound ){
+        printf("DEV ERROR 7: key is the list already\n");
+        return;
+    } else{
+        size_t len = pCache[0].len;
+        size_t index = key % len;
+        struct Node *linked_list = pCache[index].linked_list;
+        // List is empty
+        if (linked_list == NULL){
+            insertNodeInTheBeginning(&pCache[index].linked_list, key);
+            pCache[index].number_nodes_in_linked_list++;
+        } else{
+            // list have one node
+            // More Than One Nodes
+            if (pCache[index].number_nodes_in_linked_list < pCache[index].max_nodes_allow){
+                insertNodeInTheBeginning(&pCache[index].linked_list, key);
+                pCache[index].number_nodes_in_linked_list++;
+            } else{
+                insertNodeInTheBeginning(&pCache[index].linked_list, key);
+                // Remove the last Node
+                pCache[index].linked_list = removeLastNode(pCache[index].linked_list);
+                if (pCache[index].number_nodes_in_linked_list == pCache[index].max_nodes_allow){
+                    return;
+                } else{
+                    pCache[index].number_nodes_in_linked_list++;
+                }
+
+            }
+
+        }
+    }
+
+}
+
 // Search if Node exits in Cache linked-list
 int searchInCache(struct Cache **cache, size_t key ){
     struct Cache *ptr = (*cache);
@@ -168,6 +172,7 @@ int searchInCache(struct Cache **cache, size_t key ){
     }
     return 0;
 }
+
 // Insert in the beginning of the linked list in the cache
 void insertNodeInCache(struct Cache **cache, size_t key){
     struct Cache *ptr = (*cache);
