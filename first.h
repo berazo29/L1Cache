@@ -94,7 +94,7 @@ void printList(struct Node *head){
     struct Node *ptr = head;
 
     while (ptr != NULL){
-        printf("addr:%llu  ", ptr->address);
+        printf("addr:%lu  ", (long )ptr->address);
         ptr = ptr->next;
     }
     printf("(NULL)\n");
