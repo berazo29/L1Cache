@@ -157,17 +157,24 @@ void printCache(struct Cache *cache, int dev){
         printf("\n***CACHE-END***\n\n");
     }
 }
-void printCacheStats(struct CacheStats *cacheStats){
+void printCacheStats(struct CacheStats *cacheStats, int Dev){
     if (cacheStats == NULL){
         printf("cacheStats is empty\n");
         return;
     }
-    printf("CACHE-STATS\n");
-    printf("memory_read: %lu\n",cacheStats->memory_read);
-    printf("memory_write: %lu\n",cacheStats->memory_write);
-    printf("cache_hit: %lu\n",cacheStats->cache_hit);
-    printf("cache_miss: %lu\n",cacheStats->cache_miss);
-    printf("CACHE-STATS-END\n");
+    if (Dev == 1) {
+        printf("CACHE-STATS\n");
+        printf("memory_read: %lu\n", cacheStats->memory_read);
+        printf("memory_write: %lu\n", cacheStats->memory_write);
+        printf("cache_hit: %lu\n", cacheStats->cache_hit);
+        printf("cache_miss: %lu\n", cacheStats->cache_miss);
+        printf("CACHE-STATS-END\n");
+    } else{
+        printf("memread:%lu\n", cacheStats->memory_read);
+        printf("memwrite:%lu\n", cacheStats->memory_write);
+        printf("cachehit:%lu\n", cacheStats->cache_hit);
+        printf("cachemiss:%lu\n", cacheStats->cache_miss);
+    }
 }
 
 #endif //L1CACHE_FIRST_H

@@ -18,6 +18,53 @@ int searchInCache(struct Cache **cache, u_int64_t key );
 void fifo( struct Cache **cache, u_int64_t key );
 void lru( struct Cache **cache, u_int64_t key );
 
+
+void lruManager(struct Cache **cache, u_int64_t key, struct CacheStats **cacheStats, int action){
+    struct Cache *pCache = (*cache);
+    struct CacheStats *pCacheStats = (*cacheStats);
+    if (pCache == NULL || pCacheStats == NULL){
+        return;
+    }
+    unsigned int index = key % pCache->len;
+
+    // READ
+    if (action == 1){
+        int found = searchInCache(&pCache,key);
+        if (found){
+            pCacheStats->cache_hit++;
+        } else{
+            pCacheStats->memory_read++;
+            pCacheStats->cache_miss++;
+            if (pCache[index].number_nodes_in_linked_list < pCache[index].max_nodes_allow){
+                insertNodeInCache(&pCache,key);
+            } else{
+                lru(&pCache,key);
+            }
+        }
+        // WRITE
+    } else if (action == 2){
+        pCacheStats->memory_write++;
+        int found = searchInCache(&pCache,key);
+        if (found){
+            pCacheStats->cache_hit++;
+        } else{
+            pCacheStats->cache_miss++;
+            pCacheStats->memory_read++;
+
+            if (pCache[index].number_nodes_in_linked_list < pCache[index].max_nodes_allow){
+                insertNodeInCache(&pCache,key);
+            } else{
+                lru(&pCache,key);
+            }
+        }
+
+    } else{
+        printf("ERROR READ OR WRITE\n");
+    }
+
+
+}
+
 void fifoManager(struct Cache **cache, u_int64_t key, struct CacheStats **cacheStats, int action){
     struct Cache *pCache = (*cache);
     struct CacheStats *pCacheStats = (*cacheStats);
@@ -32,30 +79,29 @@ void fifoManager(struct Cache **cache, u_int64_t key, struct CacheStats **cacheS
         if (found){
             pCacheStats->cache_hit++;
         } else{
-            //pCacheStats->memory_read++;
-            pCacheStats->cache_miss++;
-
-//            if (pCache[index].number_nodes_in_linked_list < pCache[index].max_nodes_allow){
-//                insertNodeInCache(&pCache,key);
-//            } else{
-//                fifo(&pCache,key);
-//            }
-        }
-    // WRITE
-    } else if (action == 2){
-        int found = searchInCache(&pCache,key);
-        if (found){
             pCacheStats->memory_read++;
-            pCacheStats->cache_hit++;
-        } else{
-
-            pCacheStats->memory_write++;
+            pCacheStats->cache_miss++;
             if (pCache[index].number_nodes_in_linked_list < pCache[index].max_nodes_allow){
                 insertNodeInCache(&pCache,key);
             } else{
                 fifo(&pCache,key);
             }
+        }
+    // WRITE
+    } else if (action == 2){
+        pCacheStats->memory_write++;
+        int found = searchInCache(&pCache,key);
+        if (found){
+            pCacheStats->cache_hit++;
+        } else{
+            pCacheStats->cache_miss++;
             pCacheStats->memory_read++;
+
+            if (pCache[index].number_nodes_in_linked_list < pCache[index].max_nodes_allow){
+                insertNodeInCache(&pCache,key);
+            } else{
+                fifo(&pCache,key);
+            }
         }
 
     } else{
@@ -100,11 +146,11 @@ int main( int argc, char *argv[argc+1]) {
     }
     int cache_policy = getCachePolicy(argv[3]);
 
-    printf("cache_size: %lu\n",cache_size);
-    printf("block_size: %lu\n",block_size);
-    printf("associativityAction: %d\n",associativityAction);
-    printf("associativity: %lu\n",associativity);
-    printf("cache_policy: %d\n",cache_policy);
+//    printf("cache_size: %lu\n",cache_size);
+//    printf("block_size: %lu\n",block_size);
+//    printf("associativityAction: %d\n",associativityAction);
+//    printf("associativity: %lu\n",associativity);
+//    printf("cache_policy: %d\n",cache_policy);
 
     // Declare the read file and read it
     FILE *fp;
@@ -131,19 +177,24 @@ int main( int argc, char *argv[argc+1]) {
         if ( getReadWriteAction(action) == 0 ){
             continue;
         }
-        printf("action: %c %d memory_address: %llx",action,getReadWriteAction(action), memory_address );
+        //printf("action: %c %d memory_address: %llx",action,getReadWriteAction(action), memory_address );
+        if (cache_policy == 1){
+            fifoManager(&cache,memory_address,&cacheStats,getReadWriteAction(action));
+        } else if (cache_policy == 2){
+            lruManager(&cache,memory_address,&cacheStats,getReadWriteAction(action));
+        } else{
+            printf("error");
+        }
 
-
-        fifoManager(&cache,memory_address,&cacheStats,getReadWriteAction(action));
         //fifo(&cache,memory_address);
-        printf("%llu mod 4 = %d\n",memory_address,(int)(memory_address%4));
+        //printf("%llu mod 4 = %d\n",memory_address,(int)(memory_address%4));
 
     }
     // Close the file and destroy memory allocations
     fclose(fp);
 
-    printCache(cache,1);
-    printCacheStats(cacheStats);
+    //printCache(cache,1);
+    printCacheStats(cacheStats,0);
     free(cacheStats);
 
     //printCache(cache,0);
@@ -257,7 +308,7 @@ void fifo(struct Cache **cache, u_int64_t key ){
 // Search if Node exits in Cache linked-list
 int searchInCache(struct Cache **cache, u_int64_t key ){
     struct Cache *ptr = (*cache);
-
+    assert(ptr != NULL);
     if ( ptr == NULL ){
         return 0;
     }
@@ -471,7 +522,7 @@ unsigned int getAssociativity(char *arg){
     } else{
         // This is n associate cache
         long num = getNumberFromAssoc(arg);
-        printf("DEV num:%lu\n",num);
+        //printf("DEV num:%lu\n",num);
         return num;
     }
 }
