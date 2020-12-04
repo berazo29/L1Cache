@@ -100,6 +100,28 @@ void printList(struct Node *head){
     printf("(NULL)\n");
 
 }
+void removeNodeAtAddress(struct Node **head, int key){
+    // Store head node
+    struct Node* temp = *head, *prev;
+
+    // If head node itself holds the key to be deleted
+    if (temp != NULL && temp->address == key){
+        *head = temp->next;   // Changed head
+        free(temp);               // free old head
+        return;
+    }
+
+    // Search the key and delete
+    while (temp != NULL && temp->address != key){
+        prev = temp;
+        temp = temp->next;
+    }
+
+    // Key was not in the linked_list
+    if (temp == NULL) return;
+    prev->next = temp->next;
+    free(temp);
+}
 
 void printCache(struct Cache *cache, int dev){
     if (dev == 1){

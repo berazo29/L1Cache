@@ -13,9 +13,11 @@
 #include "first.h"
 #define ARR_MAX 100
 
-void insertNodeInCache(struct Cache **cache, size_t key);
-int searchInCache(struct Cache **cache, size_t key );
-void fifo(struct Cache **cache, size_t key );
+void insertNodeInCache( struct Cache **cache, size_t key);
+int searchInCache( struct Cache **cache, size_t key );
+void fifo( struct Cache **cache, size_t key );
+void lru( struct Cache **cache, size_t key );
+
 
 int main( int argc, char *argv[argc+1]) {
 
@@ -82,7 +84,8 @@ int main( int argc, char *argv[argc+1]) {
         if ( getReadWriteAction(action) == 0 ){
             continue;
         }
-        fifo(&cache,memory_address);
+        //fifo(&cache,memory_address);
+        lru(&cache,memory_address);
 //        if (getReadWriteAction(action) == 1){
 //            int x = searchInCache(&cache, memory_address);
 //            if (x){
@@ -109,7 +112,66 @@ int main( int argc, char *argv[argc+1]) {
 
     return EXIT_SUCCESS;
 }
+// Eviction policy lru
+void lru( struct Cache **cache, size_t key ){
+    struct Cache *pCache = (*cache);
+    assert(pCache != NULL );
+    int NodeFound = searchInCache( &pCache, key);
 
+    if (NodeFound){
+        // 1. The pCache is not empty, at least have one Node
+        // 2.
+        // Remove and insert in the head of the linked list in the cache
+        // Remove node at position
+        size_t len = pCache[0].len;
+        size_t index = key % len;
+        struct Node *linked_list = pCache[index].linked_list;
+
+        // If one Node node
+        if (pCache[index].max_nodes_allow == 1){
+            pCache[index].linked_list->address=key;
+        } else{
+            // More than one node
+            if (pCache[index].linked_list->address == key){
+                // if in the key in head nothing to insert
+                return;
+            } else{
+                removeNodeAtAddress(&pCache[index].linked_list, key);
+                pCache[index].number_nodes_in_linked_list--;
+                insertNodeInTheBeginning(&pCache[index].linked_list, key);
+                pCache[index].number_nodes_in_linked_list++;
+                // Remove last node if greater than the max_nodes_allow
+                if (pCache[index].number_nodes_in_linked_list > pCache[index].max_nodes_allow){
+                    // Remove the last Node
+                    pCache[index].linked_list = removeLastNode(pCache[index].linked_list);
+                }
+            }
+        }
+        //removeNodeAtAddress(&pCache[index].linked_list, key);
+
+
+    } else{
+        // 1. The cache linked list could be empty
+        // Remove last node and insert new Node
+        size_t len = pCache[0].len;
+        size_t index = key % len;
+        struct Node *linked_list = pCache[index].linked_list;
+        if (linked_list == NULL){
+            insertNodeInTheBeginning(&pCache[index].linked_list, key);
+            pCache[index].number_nodes_in_linked_list++;
+        } else{
+            //printf("DEV: not empty linkedlist\n");
+            // Linked List contain nodes
+            insertNodeInTheBeginning(&pCache[index].linked_list, key);
+            pCache[index].number_nodes_in_linked_list++;
+            if (pCache[index].number_nodes_in_linked_list > pCache[index].max_nodes_allow){
+                pCache[index].linked_list = removeLastNode(pCache[index].linked_list);
+                pCache[index].number_nodes_in_linked_list--;
+            }
+
+        }
+    }
+}
 // Eviction policy fifo
 void fifo(struct Cache **cache, size_t key ){
 
