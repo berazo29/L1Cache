@@ -13,7 +13,7 @@ struct CacheStats{
     size_t cache_miss;
 };
 struct Node {
-    long address;
+    uint64_t address;
     struct Node *next;
 };
 
@@ -24,7 +24,7 @@ struct Cache {
     struct Node *linked_list;
 };
 // Data-Structure Nodes Functions
-void insertNodeInTheBeginning(struct Node** head, size_t new_data);
+void insertNodeInTheBeginning(struct Node** head, uint64_t new_data);
 void deleteLinkedList(struct Node** head);
 
 
@@ -43,7 +43,7 @@ unsigned int checkAssociativityInput(char *arg);
 long getNumberFromAssoc(char *arg);
 
 // Data structure functions
-void insertNodeInTheBeginning(struct Node** head, size_t new_data){
+void insertNodeInTheBeginning(struct Node** head, uint64_t new_data){
 
     // Allocate new node and insert O(1)
     struct Node* new_node = (struct Node*)malloc(sizeof(struct Node));
@@ -94,13 +94,13 @@ void printList(struct Node *head){
     struct Node *ptr = head;
 
     while (ptr != NULL){
-        printf("addr:%lu  ", ptr->address);
+        printf("addr:%llu  ", ptr->address);
         ptr = ptr->next;
     }
     printf("(NULL)\n");
 
 }
-void removeNodeAtAddress(struct Node **head, int key){
+void removeNodeAtAddress(struct Node **head, uint64_t key){
     // Store head node
     struct Node* temp = *head, *prev;
 

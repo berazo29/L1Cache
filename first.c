@@ -13,10 +13,10 @@
 #include "first.h"
 #define ARR_MAX 100
 
-void insertNodeInCache( struct Cache **cache, size_t key);
-int searchInCache( struct Cache **cache, size_t key );
-void fifo( struct Cache **cache, size_t key );
-void lru( struct Cache **cache, size_t key );
+void insertNodeInCache( struct Cache **cache, uint64_t key);
+int searchInCache(struct Cache **cache, uint64_t key );
+void fifo( struct Cache **cache, uint64_t key );
+void lru( struct Cache **cache, uint64_t key );
 
 
 int main( int argc, char *argv[argc+1]) {
@@ -73,13 +73,13 @@ int main( int argc, char *argv[argc+1]) {
 
     // File data
     char action;
-    unsigned int memory_address = 0x012;
+    unsigned long long memory_address = 0x0;
     struct Cache *cache=NULL;
     struct CacheStats *cacheStats=NULL;
     cache = createCache(cache, cache_size, block_size,associativityAction, associativity, &cacheStats);
 
     //printf("sizeof(associativity[]:%lu\n",sizeof(associativity));
-    while ( fscanf( fp, "%c %x",&action, &memory_address) != EOF ){
+    while ( fscanf( fp, "%c %llx",&action, &memory_address) != EOF ){
         //printf("action: %c memory_address: %x",action, memory_address );
         if ( getReadWriteAction(action) == 0 ){
             continue;
@@ -113,7 +113,7 @@ int main( int argc, char *argv[argc+1]) {
     return EXIT_SUCCESS;
 }
 // Eviction policy lru
-void lru( struct Cache **cache, size_t key ){
+void lru( struct Cache **cache, uint64_t key ){
     struct Cache *pCache = (*cache);
     assert(pCache != NULL );
     int NodeFound = searchInCache( &pCache, key);
@@ -173,7 +173,7 @@ void lru( struct Cache **cache, size_t key ){
     }
 }
 // Eviction policy fifo
-void fifo(struct Cache **cache, size_t key ){
+void fifo(struct Cache **cache, uint64_t key ){
 
     struct Cache *pCache = (*cache);
     assert(pCache != NULL );
@@ -213,7 +213,7 @@ void fifo(struct Cache **cache, size_t key ){
 }
 
 // Search if Node exits in Cache linked-list
-int searchInCache(struct Cache **cache, size_t key ){
+int searchInCache(struct Cache **cache, uint64_t key ){
     struct Cache *ptr = (*cache);
 
     if ( ptr == NULL ){
@@ -236,7 +236,7 @@ int searchInCache(struct Cache **cache, size_t key ){
 }
 
 // Insert in the beginning of the linked list in the cache
-void insertNodeInCache(struct Cache **cache, size_t key){
+void insertNodeInCache(struct Cache **cache, uint64_t key){
     struct Cache *ptr = (*cache);
     if ( ptr == NULL ){
         return;
