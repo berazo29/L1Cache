@@ -10,8 +10,8 @@
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
-#include "first.h"
 #include <math.h>
+#include "first.h"
 
 #define ARR_MAX 100
 
