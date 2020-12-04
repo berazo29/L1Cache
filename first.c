@@ -13,43 +13,47 @@
 #include "first.h"
 #define ARR_MAX 100
 
-void fifo(struct Cache **cache, size_t key, struct CacheStats **cacheStats){
+void insertNodeInCache(struct Cache **cache, size_t key);
+int searchInCache(struct Cache **cache, size_t key );
 
-}
-int read(struct Cache **cache, size_t key, struct CacheStats **cacheStats ){
-    struct Cache *ptr = (*cache);
-    struct CacheStats *pCacheStats = (*cacheStats);
-    if ( ptr == NULL || pCacheStats == NULL ){
-        return 0;
-    }
-    pCacheStats->memory_read++;
-    size_t len = ptr[0].len;
-    size_t index = key % len;
-    struct Node *plinkedList = ptr[index].linked_list;
-    if (plinkedList == NULL){
-        return 0;
-    }
-    while (plinkedList != NULL){
-        if (plinkedList->address == key){
-            return 1;
-        }
-        plinkedList = plinkedList->next;
-    }
-    return 0;
-}
-void write(struct Cache **cache, size_t key, struct CacheStats **cacheStats ){
-    struct Cache *ptr = (*cache);
-    struct CacheStats *pCacheStats = (*cacheStats);
-    if ( ptr == NULL || pCacheStats == NULL ){
+void fifo(struct Cache **cache, size_t key ){
+
+    struct Cache *pCache = (*cache);
+    assert(pCache != NULL );
+    int NodeFound = searchInCache( &pCache, key);
+    if ( NodeFound ){
         return;
-    }
-    size_t len = ptr[0].len;
-    size_t index = key % len;
+    } else{
+        size_t len = pCache[0].len;
+        size_t index = key % len;
+        struct Node *linked_list = pCache[index].linked_list;
+        // List is empty
+        if (linked_list == NULL){
+            insertNodeInTheBeginning(&pCache[index].linked_list, key);
+            pCache[index].number_nodes_in_linked_list++;
+        } else{
+            // list have one node
+            // More Than One Nodes
+            if (pCache[index].number_nodes_in_linked_list < pCache[index].max_nodes_allow){
+                insertNodeInTheBeginning(&pCache[index].linked_list, key);
+                pCache[index].number_nodes_in_linked_list++;
+            } else{
+                insertNodeInTheBeginning(&pCache[index].linked_list, key);
+                // Remove the last Node
+                pCache[index].linked_list = removeLastNode(pCache[index].linked_list);
+                if (pCache[index].number_nodes_in_linked_list == pCache[index].max_nodes_allow){
+                    return;
+                } else{
+                    pCache[index].number_nodes_in_linked_list++;
+                }
 
-    insertNodeInTheBeginning(&ptr[index].linked_list, key);
-    ptr[index].number_nodes_in_linked_list++;
-    pCacheStats->memory_write++;
+            }
+
+        }
+    }
+
 }
+
 int main( int argc, char *argv[argc+1]) {
 
     long cache_size;
@@ -103,33 +107,38 @@ int main( int argc, char *argv[argc+1]) {
     }
 
     // File data
-    char action = '\0';
-    int memory_address = 0x012;
+    char action;
+    unsigned int memory_address = 0x012;
+    struct Cache *cache=NULL;
+    struct CacheStats *cacheStats=NULL;
+    cache = createCache(cache, cache_size, block_size,associativityAction, associativity, &cacheStats);
+
     //printf("sizeof(associativity[]:%lu\n",sizeof(associativity));
     while ( fscanf( fp, "%c %x",&action, &memory_address) != EOF ){
-        printf("action: %c memory_address: %x\n",action, memory_address );
+        //printf("action: %c memory_address: %x",action, memory_address );
+        if ( getReadWriteAction(action) == 0 ){
+            continue;
+        }
+        fifo(&cache,memory_address);
+//        if (getReadWriteAction(action) == 1){
+//            int x = searchInCache(&cache, memory_address);
+//            if (x){
+//                cacheStats->memory_read++;
+//            }
+//        } else if (getReadWriteAction(action) == 2){
+//            insertNodeInCache(&cache, memory_address);
+//        } else{
+//            printf("error in while c x action memory_address\n");
+//        }
     }
     // Close the file and destroy memory allocations
     fclose(fp);
 
-    struct Cache *cache=NULL;
-    struct CacheStats *cacheStats=NULL;
-    cache = createCache(cache, cache_size, block_size,associativityAction, associativity, &cacheStats);
-    printCacheStats(cacheStats);
-    printCache(cache,0);
-
-    // TEST WRITE
-    for (int i = 0; i < 5; ++i) {
-        write(&cache, i, &cacheStats);
-    }
-    for (int i = 0; i < 20; ++i) {
-        int x = read(&cache,i,&cacheStats);
-        printf("found i:%d %d\n",i,x);
-    }
-
+    printCache(cache,1);
     printCacheStats(cacheStats);
     free(cacheStats);
-    printCache(cache,0);
+
+    //printCache(cache,0);
     //printList(linked_list);
     //deleteLinkedList(&linked_list);
     //printList(linked_list);
@@ -137,7 +146,41 @@ int main( int argc, char *argv[argc+1]) {
 
     return EXIT_SUCCESS;
 }
+// Search if Node exits in Cache linked-list
+int searchInCache(struct Cache **cache, size_t key ){
+    struct Cache *ptr = (*cache);
 
+    if ( ptr == NULL ){
+        return 0;
+    }
+    //pCacheStats->memory_read++;
+    size_t len = ptr[0].len;
+    size_t index = key % len;
+    struct Node *plinkedList = ptr[index].linked_list;
+    if (plinkedList == NULL){
+        return 0;
+    }
+    while (plinkedList != NULL){
+        if (plinkedList->address == key){
+            return 1;
+        }
+        plinkedList = plinkedList->next;
+    }
+    return 0;
+}
+// Insert in the beginning of the linked list in the cache
+void insertNodeInCache(struct Cache **cache, size_t key){
+    struct Cache *ptr = (*cache);
+    if ( ptr == NULL ){
+        return;
+    }
+    size_t len = ptr[0].len;
+    size_t index = key % len;
+
+    insertNodeInTheBeginning(&ptr[index].linked_list, key);
+    ptr[index].number_nodes_in_linked_list++;
+
+}
 // Create an empty cache with given capacity or lines
 struct Cache *createCache(struct Cache *cache, size_t cache_size, size_t block_size,unsigned int assocAction, size_t assoc, struct CacheStats **cacheStats){
 

@@ -52,6 +52,26 @@ void insertNodeInTheBeginning(struct Node** head, size_t new_data){
     (*head) = new_node;
 
 }
+struct Node* removeLastNode(struct Node* head)
+{
+    if (head == NULL)
+        return NULL;
+
+    if (head->next == NULL) {
+        free(head);
+        return NULL;
+    }
+
+    // Find the second last node
+    struct Node* ptr = head;
+    while (ptr->next->next != NULL){
+        ptr = ptr->next;
+    }
+    free(ptr->next);
+    ptr->next = NULL;
+
+    return head;
+}
 void deleteLinkedList(struct Node** head){
     if ( head == NULL){
         return;
