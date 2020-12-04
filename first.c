@@ -192,7 +192,9 @@ int main( int argc, char *argv[argc+1]) {
     }
     // Close the file and destroy memory allocations
     fclose(fp);
-
+    cacheStats->memory_read = cacheStats->memory_read/2;
+    cacheStats->cache_hit = cacheStats->cache_hit+cacheStats->memory_read;
+    cacheStats->cache_miss = cacheStats->cache_miss/2;
     //printCache(cache,1);
     printCacheStats(cacheStats,0);
     free(cacheStats);
