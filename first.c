@@ -15,12 +15,13 @@
 
 #define ARR_MAX 100
 
-int calculateSets(size_t cache_size,size_t block_size,unsigned int assocAction, size_t assoc);
+unsigned int calculateSets(size_t cache_size,size_t block_size,unsigned int assocAction, size_t assoc);
 size_t ** createNewCache(int sets, int blocks);
 void deleteCache(size_t ** cache, int sets, int blocks);
 int searchAddressInCache(size_t** cache, size_t address, int num_block_offsets, int num_sets, int blocks);
 size_t** LRU(size_t** cache, size_t address, int block_offset, int sets, int blocks);
 size_t** insertNewTagToCache(size_t** cache, size_t address, int blocks_offset, int sets, int blocks);
+int getReadWriteAction(char action);
 
 // GLOBAL
 int MEM_READS = 0;
@@ -144,10 +145,13 @@ void updateCache(FILE * trace_file, size_t** cache, int blocks_offset, int sets,
     char action;
     size_t address;
     // reads until end of file
-    while((fscanf(trace_file, "%c %zx\n", &action, &address) != EOF) && (action != '#')){
+    while((fscanf(trace_file, "%c %zx\n", &action, &address) != EOF) ){
 
         // Increment for each write
-        if(action != 'R') {
+        if (getReadWriteAction(action) == 0){
+            continue;
+        }
+        if(getReadWriteAction(action) == 2) {
             MEM_WRITES++;
         }
 
@@ -233,7 +237,7 @@ int main( int argc, char *argv[argc+1]) {
     NUM_BLOCKS = cache_size / (block_size * NUM_SETS);
 
     // Calculate the sets and offset bits
-    SET_BITS = log(NUM_SETS) / log(2);
+    SET_BITS = (int)log(NUM_SETS) / log(2);
     OFFSET_BITS = log(block_size) / log(2);
 
     // Create a new cache
@@ -253,8 +257,8 @@ int main( int argc, char *argv[argc+1]) {
 }
 
 // Create an empty cache with given capacity or lines
-int calculateSets(size_t cache_size,size_t block_size,unsigned int assocAction, size_t assoc){
-    int set=0;
+unsigned int calculateSets(size_t cache_size,size_t block_size,unsigned int assocAction, size_t assoc){
+    unsigned int set=0;
     if (assocAction == 1){
         set = cache_size/block_size;
         return set;
@@ -494,4 +498,26 @@ int getCachePolicy(char *arg){
 }
 size_t calculateNumberCacheAddresses(size_t cache_size, size_t cache_block ){
     return cache_size/cache_block;
+}
+
+int getReadWriteAction(char action){
+    /* DOC
+     * 0 for errors
+     * 1 for READ
+     * 2 for WRITE
+     */
+    if (action == '\0'){
+        return 0;
+    }
+
+    char r='r';
+    char w='w';
+    char str = (char)tolower(action);
+    if ( str == r){
+        return 1;
+    } else if ( str == w ){
+        return 2;
+    } else{
+        return 0;
+    }
 }

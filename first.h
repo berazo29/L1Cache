@@ -7,7 +7,7 @@
 
 // DATA STRUCTURE
 struct Node {
-    __int64_t address;
+    unsigned long address;
     struct Node *next;
 };
 
@@ -19,7 +19,7 @@ struct Cache {
 };
 
 // Data-Structure Nodes Functions
-void insertNodeInTheBeginning(struct Node** head, __int64_t new_data);
+void insertNodeInTheBeginning(struct Node** head, unsigned long new_data);
 void deleteLinkedList(struct Node** head);
 
 
@@ -40,7 +40,7 @@ unsigned int checkAssociativityInput(char *arg);
 long getNumberFromAssoc(char *arg);
 
 // Data structure functions
-void insertNodeInTheBeginning(struct Node** head, __int64_t new_data){
+void insertNodeInTheBeginning(struct Node** head, unsigned long new_data){
 
     // Allocate new node and insert O(1)
     struct Node* new_node = (struct Node*)malloc(sizeof(struct Node));
