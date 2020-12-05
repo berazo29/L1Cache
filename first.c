@@ -15,13 +15,13 @@
 
 #define ARR_MAX 100
 
-unsigned int calculateSets(size_t cache_size,size_t block_size,unsigned int assocAction, size_t assoc);
+int calculateSets(size_t cache_size,size_t block_size,unsigned int assocAction, size_t assoc);
 size_t ** createNewCache(int sets, int blocks);
 void deleteCache(size_t ** cache, int sets, int blocks);
 int searchAddressInCache(size_t** cache, size_t address, int num_block_offsets, int num_sets, int blocks);
 size_t** LRU(size_t** cache, size_t address, int block_offset, int sets, int blocks);
 size_t** insertNewTagToCache(size_t** cache, size_t address, int blocks_offset, int sets, int blocks);
-int getReadWriteAction(char action);
+void updateCache(FILE * trace_file, size_t** cache, int blocks_offset, int sets, int blocks, int cache_policy);
 
 // GLOBAL
 int MEM_READS = 0;
@@ -40,6 +40,82 @@ void printSubmitOutputFormat(){
     printf("memwrite:%d\n", MEM_WRITES);
     printf("cachehit:%d\n", CACHE_HITS);
     printf("cachemiss:%d\n", CACHE_MISS);
+}
+
+int main( int argc, char *argv[argc+1]) {
+
+    long cache_size;
+    long block_size;
+
+    //File name from arguments
+    if (argc != 6 ){
+        printf("DEV Error 1: Give 5 arg as int: cache_size, str: associativity, str: cache_policy, int: block_size, str: trace_file\n");
+        printf("error");
+        return EXIT_SUCCESS;
+    }
+    // Check for power of 2 for cache_size and block_size
+    cache_size = getCacheSize(argv[1]);
+    block_size = getBlockSize(argv[4]);
+    if (cache_size == 0 || block_size == 0){
+        printf("DEV Error 2: cache_size and block_size must be power of 2 and > 0\n");
+        printf("error");
+        return EXIT_SUCCESS;
+    }
+    long associativity;
+    unsigned int associativityAction = checkAssociativityInput(argv[2]);
+
+    // action 1,2,3 -> direct, fully, n associativity and 0 is error
+    if (associativityAction == 1){
+        associativity = 1;
+    } else if (associativityAction == 2){
+        associativity = calculateNumberCacheAddresses(cache_size, block_size);
+    } else if (associativityAction == 3){
+        associativity = getAssociativity(argv[2]);
+    } else{
+        //printf("DEV ERROR: associativityAction input is incorrect\n");
+        return 0;
+    }
+    int cache_policy = getCachePolicy(argv[3]);
+
+//    printf("cache_size: %lu\n",cache_size);
+//    printf("block_size: %lu\n",block_size);
+//    printf("associativityAction: %d\n",associativityAction);
+//    printf("associativity: %lu\n",associativity);
+//    printf("cache_policy: %d\n",cache_policy);
+
+    // Declare the read file and read it
+    FILE *fp;
+    fp = fopen( argv[5], "r");
+    // Check if the file is empty
+    if ( fp == NULL ){
+        //printf("DEV Error 3:Unable to read the file\n");
+        printf("error\n");
+        return EXIT_SUCCESS;
+    }
+
+
+    // Calculate parameters for the new cache
+    NUM_SETS = calculateSets(cache_size, block_size, associativityAction, associativity);
+    NUM_BLOCKS = cache_size / (block_size * NUM_SETS);
+
+    // Calculate the sets and offset bits
+    SET_BITS = log(NUM_SETS) / log(2);
+    OFFSET_BITS = log(block_size) / log(2);
+
+    // Create a new cache
+    size_t** cache = createNewCache(NUM_SETS, NUM_BLOCKS);
+
+    // Receive the address and simulate the cache
+    updateCache(fp, cache, OFFSET_BITS, SET_BITS, NUM_BLOCKS, cache_policy);
+
+    // Print the results
+    printSubmitOutputFormat();
+
+    // Close the file and destroy memory allocations
+    fclose(fp);
+    deleteCache(cache, NUM_SETS, NUM_BLOCKS);
+
+    return EXIT_SUCCESS;
 }
 
 // insert the cache
@@ -125,7 +201,6 @@ void deleteCache(size_t ** cache, int sets, int blocks){
             cache[i][j] = (size_t) NULL;
         }
         free(cache[i]);
-        cache[i] = NULL;
     }
     free(cache);
     cache = NULL;
@@ -145,13 +220,10 @@ void updateCache(FILE * trace_file, size_t** cache, int blocks_offset, int sets,
     char action;
     size_t address;
     // reads until end of file
-    while((fscanf(trace_file, "%c %zx\n", &action, &address) != EOF) ){
+    while((fscanf(trace_file, "%c %zx\n", &action, &address) != EOF) && (action != '#')){
 
         // Increment for each write
-        if (getReadWriteAction(action) == 0){
-            continue;
-        }
-        if(getReadWriteAction(action) == 2) {
+        if(action != 'R') {
             MEM_WRITES++;
         }
 
@@ -173,92 +245,9 @@ void updateCache(FILE * trace_file, size_t** cache, int blocks_offset, int sets,
         }
     }
 }
-int main( int argc, char *argv[argc+1]) {
-
-    long cache_size;
-    long block_size;
-
-    //File name from arguments
-    if (argc != 6 ){
-        printf("DEV Error 1: Give 5 arg as int: cache_size, str: associativity, str: cache_policy, int: block_size, str: trace_file\n");
-        printf("error");
-        return EXIT_SUCCESS;
-    }
-    // Check for power of 2 for cache_size and block_size
-    cache_size = getCacheSize(argv[1]);
-    block_size = getBlockSize(argv[4]);
-    if (cache_size == 0 || block_size == 0){
-        printf("DEV Error 2: cache_size and block_size must be power of 2 and > 0\n");
-        printf("error");
-        return EXIT_SUCCESS;
-    }
-    long associativity;
-    unsigned int associativityAction = checkAssociativityInput(argv[2]);
-
-    // action 1,2,3 -> direct, fully, n associativity and 0 is error
-    if (associativityAction == 1){
-        associativity = 1;
-    } else if (associativityAction == 2){
-        associativity = calculateNumberCacheAddresses(cache_size, block_size);
-    } else if (associativityAction == 3){
-        associativity = getAssociativity(argv[2]);
-    } else{
-        //printf("DEV ERROR: associativityAction input is incorrect\n");
-        return 0;
-    }
-    int cache_policy = getCachePolicy(argv[3]);
-
-//    printf("cache_size: %lu\n",cache_size);
-//    printf("block_size: %lu\n",block_size);
-//    printf("associativityAction: %d\n",associativityAction);
-//    printf("associativity: %lu\n",associativity);
-//    printf("cache_policy: %d\n",cache_policy);
-
-    // Declare the read file and read it
-    FILE *fp;
-    fp = fopen( argv[5], "r");
-    // Check if the file is empty
-    if ( fp == NULL ){
-        //printf("DEV Error 3:Unable to read the file\n");
-        printf("error\n");
-        return EXIT_SUCCESS;
-    }
-
-    // Use for develop
-    int usedLikedList = 0;
-
-    if (usedLikedList == 0){
-        struct Cache *cache_linked_list = NULL;
-        createCache(cache_linked_list,cache_size,block_size,associativityAction,associativity);
-    }
-
-    // Calculate parameters for the new cache
-    NUM_SETS = calculateSets(cache_size, block_size, associativityAction, associativity);
-    NUM_BLOCKS = cache_size / (block_size * NUM_SETS);
-
-    // Calculate the sets and offset bits
-    SET_BITS = (int)log(NUM_SETS) / log(2);
-    OFFSET_BITS = log(block_size) / log(2);
-
-    // Create a new cache
-    size_t** cache = createNewCache(NUM_SETS, NUM_BLOCKS);
-
-    // Receive the address and simulate the cache
-    updateCache(fp, cache, OFFSET_BITS, SET_BITS, NUM_BLOCKS, cache_policy);
-
-    // Print the results
-    printSubmitOutputFormat();
-
-    // Close the file and destroy memory allocations
-    fclose(fp);
-    deleteCache(cache, NUM_SETS, NUM_BLOCKS);
-
-    return EXIT_SUCCESS;
-}
-
 // Create an empty cache with given capacity or lines
-unsigned int calculateSets(size_t cache_size,size_t block_size,unsigned int assocAction, size_t assoc){
-    unsigned int set=0;
+int calculateSets(size_t cache_size,size_t block_size,unsigned int assocAction, size_t assoc){
+    int set=0;
     if (assocAction == 1){
         set = cache_size/block_size;
         return set;
@@ -498,26 +487,4 @@ int getCachePolicy(char *arg){
 }
 size_t calculateNumberCacheAddresses(size_t cache_size, size_t cache_block ){
     return cache_size/cache_block;
-}
-
-int getReadWriteAction(char action){
-    /* DOC
-     * 0 for errors
-     * 1 for READ
-     * 2 for WRITE
-     */
-    if (action == '\0'){
-        return 0;
-    }
-
-    char r='r';
-    char w='w';
-    char str = (char)tolower(action);
-    if ( str == r){
-        return 1;
-    } else if ( str == w ){
-        return 2;
-    } else{
-        return 0;
-    }
 }
