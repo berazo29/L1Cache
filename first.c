@@ -20,7 +20,7 @@ size_t ** createNewCache(int sets, int blocks);
 void deleteCache(size_t ** cache, int sets, int blocks);
 int searchAddressInCache(size_t** cache, size_t address, int num_block_offsets, int num_sets, int blocks);
 size_t** LRU(size_t** cache, size_t address, int block_offset, int sets, int blocks);
-size_t** insertNewTagToCache(size_t** cache, size_t address, int blocks_offset, int sets, int blocks);
+size_t** FIFO(size_t** cache, size_t address, int blocks_offset, int sets, int blocks);
 void updateCache(FILE * trace_file, size_t** cache, int blocks_offset, int sets, int blocks, int cache_policy);
 
 // GLOBAL
@@ -119,7 +119,7 @@ int main( int argc, char *argv[argc+1]) {
 }
 
 // insert the cache
-size_t** insertNewTagToCache(size_t** cache, size_t address, int blocks_offset, int sets, int blocks){
+size_t** FIFO(size_t** cache, size_t address, int blocks_offset, int sets, int blocks){
 
     size_t index = (address >> blocks_offset) & ((1 << sets) - 1);
 
@@ -129,7 +129,7 @@ size_t** insertNewTagToCache(size_t** cache, size_t address, int blocks_offset, 
     // Add to the cache
     for(i = 0; i < blocks; i++){
 
-        // Eviction is not required
+        // If null there is an slot and insert the new address tag
         if(cache[index][i] == (size_t) NULL){
             cache[index][i] = address >> (blocks_offset + sets);
             flag = 1;
@@ -170,11 +170,11 @@ size_t** LRU(size_t** cache, size_t address, int block_offset, int sets, int blo
 
 int searchAddressInCache(size_t** cache, size_t address, int num_block_offsets, int num_sets, int blocks){
 
-    size_t setIndex = (address >> num_block_offsets) & ((1 << num_sets) - 1);
+    size_t index = (address >> num_block_offsets) & ((1 << num_sets) - 1);
     // Find the set in the block 1 for true and 0 for false
     for(int i = 0; i < blocks; i++){
 
-        if ((address >> (num_sets + num_block_offsets)) == cache[setIndex][i]){
+        if ((address >> (num_sets + num_block_offsets)) == cache[index][i]){
             return 1;
         }
     }
@@ -241,7 +241,7 @@ void updateCache(FILE * trace_file, size_t** cache, int blocks_offset, int sets,
             CACHE_MISS++;
             MEM_READS++;
 
-            cache = insertNewTagToCache(cache, address, blocks_offset, sets, blocks);
+            cache = FIFO(cache, address, blocks_offset, sets, blocks);
         }
     }
 }
